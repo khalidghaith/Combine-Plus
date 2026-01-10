@@ -1,0 +1,85 @@
+
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #e5e5e5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        /* App Window */
+        #app-window {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        /* Themes (ORANGE/OFF-WHITE LOOK) */
+       .theme-light {
+            background-color: #FDFCF8;
+            color: #333333;
+            --bg-secondary: #F7F8FA;
+            --bg-container: #EAECEF;
+            --accent: #F97316; /* Tailwind Orange-500 */
+            --accent-strong: #EA580C; /* Tailwind Orange-600 */
+            --border: #E5E7EB;
+            --text-sub: #777777;
+            --hover-bg: #F3F4F6;
+            --ring-color: #F97316;
+            --selected-border: #F97316;
+            --selected-bg: rgba(249, 115, 22, 0.1);
+        }
+       .theme-dark {
+            background-color: #1E1E1E;
+            color: #E0E0E0;
+            --bg-secondary: #2D2D2D;
+            --bg-container: #333333;
+            --accent: #FDBA74; 
+            --accent-strong: #FB923C;
+            --border: #444444;
+            --text-sub: #AAAAAA;
+            --hover-bg: #333333;
+            --ring-color: #FB923C;
+            --selected-border: #FB923C;
+            --selected-bg: rgba(251, 146, 60, 0.2);
+        }
+
+        /* Markers & Drag Styles */
+        .insertion-marker-vertical { position: absolute; width: 4px; background-color: var(--ring-color); border-radius: 2px; box-shadow: 0 0 8px var(--ring-color); pointer-events: none; z-index: 50; }
+        .insertion-marker-horizontal { position: absolute; height: 4px; background-color: var(--ring-color); border-radius: 2px; box-shadow: 0 0 8px var(--ring-color); pointer-events: none; z-index: 50; }
+        .dragging { opacity: 0.4; }
+        .is-selected { border-color: var(--selected-border) !important; background-color: var(--selected-bg) !important; box-shadow: 0 0 0 1px var(--selected-border); }
+        .drop-target-bg { background-color: var(--selected-bg) !important; outline: 2px dashed var(--ring-color); outline-offset: -2px; }
+       .compressed-state { opacity: 0.5; transform: scale(0.95); filter: grayscale(0.5); }
+        #list-drop-tail {
+            height: 1rem; /* Idle height */
+        }
+        #list-drop-tail.drop-target-bg { background-color: var(--selected-bg); border: 2px dashed var(--ring-color); height: 3rem; /* h-12 */ }
+        .grid-item-transition { transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CCCCCC; border-radius: 4px; }
+        .theme-dark ::-webkit-scrollbar-thumb { background: #555555; }
+        
+        /* Modal */
+        .modal-backdrop { transition: opacity 0.2s ease-in-out; }
+        .modal-backdrop.hidden { opacity: 0; pointer-events: none; }
+        .modal-content { transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out; }
+        .modal-backdrop.hidden .modal-content { opacity: 0; transform: scale(0.95); }
+
+        /* List View Expansion Animation */
+        .list-child-body { transition: all 0.3s ease-in-out; overflow: hidden; }
+        
+        .hidden { display: none !important; }
+    

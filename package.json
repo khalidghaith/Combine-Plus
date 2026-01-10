@@ -1,0 +1,53 @@
+{
+  "name": "combine-plus",
+  "version": "1.4.0",
+  "description": "Combine+ PDF Merger",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "author": "CombineUser",
+  "license": "MIT",
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "mupdf": "^1.26.4",
+    "pdfkit": "^0.15.0",
+    "sharp": "^0.33.4",
+    "svg-to-pdfkit": "^0.1.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "tailwindcss": "^4.1.18"
+  },
+  "build": {
+    "appId": "com.combineplus.app",
+    "productName": "Combine+",
+    "icon": "icon.ico",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "dir",
+      "icon": "icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "bin/merge_engine.exe",
+        "to": "bin/merge_engine.exe"
+      }
+    ],
+    "files": [
+      "**/*",
+      "!.vscode/",
+      "!dist/",
+      "!*.pdf",
+      "!*.py",
+      "!build/",
+      "!bin/",
+      "!py-dist/"
+    ]
+  }
+}
