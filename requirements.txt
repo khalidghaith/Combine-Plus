@@ -1,2 +1,12 @@
+Combine+ is an electron based application
+
+you need to install node.js in order to use nmp commands
+after installing node.js you can run: "npm install" in terminal to download necessary libraries.
+
+Combine+ uses python libraries for the final export, you will need python and pip install the following libraries:
+
+install inno-setup for installer building.
+
+pyinstaller
 pypdf
 PyPDF2
