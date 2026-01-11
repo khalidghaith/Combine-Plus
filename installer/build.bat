@@ -30,6 +30,10 @@ if exist dist rd /S /Q dist
 call npm run dist
 if %errorlevel% neq 0 goto :error
 
+:: 4. Generate Checksums
+echo [4/4] Generating Checksums...
+powershell -NoProfile -Command "Get-ChildItem dist\*.exe | ForEach-Object { (Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash.ToLower() + '  ' + $_.Name } | Out-File -Encoding ASCII dist\SHA256SUMS.txt"
+
 echo ========================================
 echo Build Finished! Check dist/ for output.
 echo ========================================
