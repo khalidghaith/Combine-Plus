@@ -105,3 +105,13 @@ Speed up your workflow with these hotkeys:
  
 <img width="816" height="596" alt="Combine_plus_ExportSuccess" src="https://github.com/user-attachments/assets/a4869203-b7e6-4a44-b7ae-19a561b2b09e" />
 
+For Developers:
+
+Combine+ is an electron based application
+
+you need to install node.js in order to use npm commands
+after installing node.js you can run: "npm install" in terminal to download necessary libraries.
+
+Combine+ uses python libraries for the final export, you will need python and pip install the following libraries:
+
+install inno-setup for installer building.
