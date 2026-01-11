@@ -222,23 +222,29 @@
             <h2 class="text-3xl font-bold mb-4">Designed for Your Environment</h2>
             <p class="text-gray-400 max-w-2xl mx-auto mb-12">Whether you prefer a bright workspace or a dark mode aesthetic, Combine+ adapts to your needs.</p>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="group relative overflow-hidden rounded-xl aspect-video cursor-pointer">
-                    <img src="Combine_plus_StartScreen-Dark.png" alt="Dark Theme" class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="group relative overflow-hidden rounded-xl cursor-pointer border border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300" onclick="openLightbox('Combine_plus_StartScreen-Dark.png')">
+                    <img src="Combine_plus_StartScreen-Dark.png" alt="Dark Theme" class="w-full h-auto object-cover opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
                     <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
-                        <span class="text-sm font-medium text-white">Dark Theme</span>
+                        <span class="text-sm font-bold text-white">Dark Theme</span>
                     </div>
                 </div>
-                <div class="group relative overflow-hidden rounded-xl aspect-video cursor-pointer">
-                    <img src="Combine_plus_Rearrange_List.png" alt="List View" class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
+                <div class="group relative overflow-hidden rounded-xl cursor-pointer border border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300" onclick="openLightbox('Combine_plus_Rearrange_List.png')">
+                    <img src="Combine_plus_Rearrange_List.png" alt="List View" class="w-full h-auto object-cover opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
                     <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
-                        <span class="text-sm font-medium text-white">List View</span>
+                        <span class="text-sm font-bold text-white">List View</span>
                     </div>
                 </div>
-                <div class="group relative overflow-hidden rounded-xl aspect-video cursor-pointer">
-                    <img src="Combine_plus_ExportSuccess.png" alt="Success Modal" class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
+                <div class="group relative overflow-hidden rounded-xl cursor-pointer border border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300" onclick="openLightbox('Combine_plus_ExportSuccess.png')">
+                    <img src="Combine_plus_ExportSuccess.png" alt="Success Modal" class="w-full h-auto object-cover opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
                     <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
-                        <span class="text-sm font-medium text-white">Export Success</span>
+                        <span class="text-sm font-bold text-white">Export Success</span>
+                    </div>
+                </div>
+                <div class="group relative overflow-hidden rounded-xl cursor-pointer border border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300" onclick="openLightbox('Combine_plus_ExpandFiles.png')">
+                    <img src="Combine_plus_ExpandFiles.png" alt="Expand to view large files" class="w-full h-auto object-cover opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
+                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
+                        <span class="text-sm font-bold text-white">Expand to view large files</span>
                     </div>
                 </div>
             </div>
@@ -284,6 +290,16 @@
                     <span class="text-gray-700 font-medium">Remove Item</span>
                     <kbd class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-500 font-mono shadow-sm">Del</kbd>
                 </div>
+                <!-- Move Items -->
+                <div class="p-6 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center">
+                    <span class="text-gray-700 font-medium">Move Items</span>
+                    <kbd class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-500 font-mono shadow-sm">Ctrl + Arrows</kbd>
+                </div>
+                <!-- Zoom Grid -->
+                <div class="p-6 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center">
+                    <span class="text-gray-700 font-medium">Zoom Grid View</span>
+                    <kbd class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-500 font-mono shadow-sm">Ctrl + Scroll</kbd>
+                </div>
             </div>
         </div>
     </section>
@@ -324,6 +340,12 @@
         </div>
     </footer>
 
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="fixed inset-0 z-[100] bg-black/90 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="Gallery Image" class="max-w-full max-h-full rounded-lg shadow-2xl transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+        <button class="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 focus:outline-none">&times;</button>
+    </div>
+
     <!-- Scripts -->
     <script>
         // Mobile Menu Toggle
@@ -349,6 +371,38 @@
         window.addEventListener("scroll", reveal);
         // Trigger once on load
         reveal();
+
+        // Lightbox Logic
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+
+        function openLightbox(src) {
+            lightboxImg.src = src;
+            lightbox.classList.remove('hidden');
+            setTimeout(() => {
+                lightbox.classList.remove('opacity-0');
+                lightboxImg.classList.remove('scale-95');
+                lightboxImg.classList.add('scale-100');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            lightbox.classList.add('opacity-0');
+            lightboxImg.classList.remove('scale-100');
+            lightboxImg.classList.add('scale-95');
+            setTimeout(() => {
+                lightbox.classList.add('hidden');
+                lightboxImg.src = '';
+            }, 300);
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
+                closeLightbox();
+            }
+        });
     </script>
 </body>
 </html>
