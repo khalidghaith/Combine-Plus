@@ -25,8 +25,8 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 ; Request admin privileges (Required for HKCR registry writes)
 PrivilegesRequired=admin 
 OutputBaseFilename=Combine+ Setup-{#MyAppVersion}
-OutputDir=dist
-SetupIconFile=icon.ico
+OutputDir=..\dist
+SetupIconFile=..\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -41,7 +41,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "contextmenu"; Description: "Add 'Merge with Combine+' to right-click menu"; GroupDescription: "Context Menu:"
 
 [Files]
-Source: "dist\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

@@ -1,4 +1,7 @@
 @echo off
+:: Switch to the project root directory (parent of the installer folder)
+pushd "%~dp0.."
+
 set VERSION=1.4.0
 echo ========================================
 echo Building Combine+ v%VERSION% (Offline Edition)
@@ -37,6 +40,7 @@ powershell -NoProfile -Command "Get-ChildItem dist\*.exe | ForEach-Object { (Get
 echo ========================================
 echo Build Finished! Check dist/ for output.
 echo ========================================
+popd
 pause
 exit /b 0
 
@@ -45,5 +49,6 @@ echo.
 echo ========================================
 echo BUILD FAILED!
 echo ========================================
+popd
 pause
 exit /b 1
