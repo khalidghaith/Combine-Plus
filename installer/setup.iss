@@ -8,7 +8,14 @@
 ; --- VERSION HANDLING ---
 ; Accept version from build script via command line argument: iscc /DMyAppVersion="x.y.z" setup.iss
 #ifndef MyAppVersion
-  #define MyAppVersion "1.4.0"
+  #define PkgJsonPath "..\package.json"
+  #define PkgJsonContent LoadFileSource(PkgJsonPath)
+  #define VerKey '"version": "'
+  #define VerKeyPos Pos(VerKey, PkgJsonContent)
+  #define VerStart VerKeyPos + Len(VerKey)
+  #define RemainingContent Copy(PkgJsonContent, VerStart)
+  #define VerEnd Pos('"', RemainingContent)
+  #define MyAppVersion Copy(RemainingContent, 1, VerEnd - 1)
 #endif
 
 [Setup]

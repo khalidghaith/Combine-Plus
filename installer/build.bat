@@ -2,7 +2,8 @@
 :: Switch to the project root directory (parent of the installer folder)
 pushd "%~dp0.."
 
-set VERSION=1.4.0
+:: Extract version from package.json
+for /f "delims=" %%v in ('node -p "require('./package.json').version"') do set VERSION=%%v
 echo ========================================
 echo Building Combine+ v%VERSION% (Offline Edition)
 echo ========================================
@@ -36,6 +37,10 @@ if %errorlevel% neq 0 goto :error
 :: 4. Generate Checksums
 echo [4/4] Generating Checksums...
 powershell -NoProfile -Command "Get-ChildItem dist\*.exe | ForEach-Object { (Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash.ToLower() + '  ' + $_.Name } | Out-File -Encoding ASCII dist\SHA256SUMS.txt"
+
+:: 5. Compile Installer with Version
+echo [5/5] Compiling Installer...
+iscc /DMyAppVersion="%VERSION%" "installer\setup.iss"
 
 echo ========================================
 echo Build Finished! Check dist/ for output.

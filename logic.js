@@ -1,6 +1,7 @@
 // --- ELECTRON DETECTION & IPC HOOKS (GLOBAL) ---
 let ipcRenderer = null;
 let isElectron = false;
+let appVersion = 'Dev Build'; // Fallback
 let pendingFiles = [];
 let fs = null;
 let path = null;
@@ -14,6 +15,7 @@ try {
         path = require('path');
         os = require('os');
         isElectron = true;
+        try { appVersion = require('./package.json').version; } catch(e) {}
         console.log("Environment: Real Electron App");
 
         ipcRenderer.on('add-files-from-system', (event, filePaths) => {
@@ -122,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <h3 class="text-lg font-bold mb-2">About Combine+</h3>
                     <p class="text-sm text-[var(--text-sub)] mb-1">This App. was designed by Khalid Ghaith and Gemini</p>
-                    <p class="text-xs text-[var(--text-sub)] opacity-70">Version 1.4.0</p>
+                    <p class="text-xs text-[var(--text-sub)] opacity-70">Version ${appVersion}</p>
                 </div>
         `;
         helpBtn.parentNode.appendChild(aboutModal);
