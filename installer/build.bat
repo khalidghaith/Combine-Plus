@@ -31,16 +31,31 @@ if exist merge_engine.spec del /Q merge_engine.spec
 :: 3. Build Electron Distribution
 echo [3/3] Packaging Electron App...
 if exist dist rd /S /Q dist
+if exist setup-output rd /S /Q setup-output
 call npm run dist
 if %errorlevel% neq 0 goto :error
 
-:: 4. Generate Checksums
-echo [4/4] Generating Checksums...
-powershell -NoProfile -Command "Get-ChildItem dist\*.exe | ForEach-Object { (Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash.ToLower() + '  ' + $_.Name } | Out-File -Encoding ASCII dist\SHA256SUMS.txt"
+:: 4. Compile Installer with Version
+echo [4/5] Compiling Installer...
 
-:: 5. Compile Installer with Version
-echo [5/5] Compiling Installer...
-iscc /DMyAppVersion="%VERSION%" "installer\setup.iss"
+:: Find Inno Setup Compiler (ISCC)
+set "ISCC_CMD="
+where iscc >nul 2>nul && set "ISCC_CMD=iscc"
+if not defined ISCC_CMD if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" set "ISCC_CMD=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+if not defined ISCC_CMD if exist "C:\Program Files\Inno Setup 6\ISCC.exe" set "ISCC_CMD=C:\Program Files\Inno Setup 6\ISCC.exe"
+if not defined ISCC_CMD ( echo [ERROR] ISCC.exe not found. Install Inno Setup 6 or add to PATH. & goto :error )
+
+"%ISCC_CMD%" /DMyAppVersion="%VERSION%" "installer\setup.iss"
+if %errorlevel% neq 0 goto :error
+
+:: Move installer from temporary output to dist
+if not exist "dist" mkdir "dist"
+move /Y "setup-output\*.exe" "dist\" >nul
+if exist setup-output rd /S /Q setup-output
+
+:: 5. Generate Checksums
+echo [5/5] Generating Checksums...
+powershell -NoProfile -Command "Get-ChildItem dist\*.exe | ForEach-Object { (Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash.ToLower() + '  ' + $_.Name } | Out-File -Encoding ASCII dist\SHA256SUMS.txt"
 
 echo ========================================
 echo Build Finished! Check dist/ for output.

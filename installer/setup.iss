@@ -8,14 +8,21 @@
 ; --- VERSION HANDLING ---
 ; Accept version from build script via command line argument: iscc /DMyAppVersion="x.y.z" setup.iss
 #ifndef MyAppVersion
-  #define PkgJsonPath "..\package.json"
-  #define PkgJsonContent LoadFileSource(PkgJsonPath)
-  #define VerKey '"version": "'
-  #define VerKeyPos Pos(VerKey, PkgJsonContent)
-  #define VerStart VerKeyPos + Len(VerKey)
-  #define RemainingContent Copy(PkgJsonContent, VerStart)
-  #define VerEnd Pos('"', RemainingContent)
-  #define MyAppVersion Copy(RemainingContent, 1, VerEnd - 1)
+  ; Fallback for manual compilation: Extract version using Node.js
+  #define VerFile SourcePath + "version_temp.txt"
+  #expr Exec("cmd", "/c node -e ""process.stdout.write(require('./package.json').version)"" > """ + VerFile + """", SourcePath + "..", 1, 0)
+  #if FileExists(VerFile)
+    #define FileHandle FileOpen(VerFile)
+    #if !FileEof(FileHandle)
+      #define MyAppVersion FileRead(FileHandle)
+    #else
+      #define MyAppVersion "1.0.0"
+    #endif
+    #expr FileClose(FileHandle)
+    #expr DeleteFile(VerFile)
+  #else
+    #define MyAppVersion "1.0.0"
+  #endif
 #endif
 
 [Setup]
@@ -32,7 +39,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 ; Request admin privileges (Required for HKCR registry writes)
 PrivilegesRequired=admin 
 OutputBaseFilename=Combine+ Setup-{#MyAppVersion}
-OutputDir=..\dist
+OutputDir=..\setup-output
 SetupIconFile=..\icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -125,3 +132,24 @@ Type: filesandordirs; Name: "{localappdata}\{#MyAppName}"
 
 ; NOTE: You do NOT need to delete Registry keys here. 
 ; Inno Setup automatically removes any registry keys it created in the [Registry] section.
+
+[Code]
+function InitializeSetup: Boolean;
+var
+  InstalledVersion: String;
+  AppId: String;
+  RegKey: String;
+begin
+  Result := True;
+  AppId := '{A1B2C3D4-E5F6-7890-1234-56789ABCDEF0}';
+  RegKey := 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\' + AppId + '_is1';
+
+  if RegQueryStringValue(HKLM64, RegKey, 'DisplayVersion', InstalledVersion) then
+  begin
+    if InstalledVersion = '{#MyAppVersion}' then
+    begin
+      if MsgBox('Version ' + InstalledVersion + ' is already installed.' + #13#10 + 'Do you still want to replace it?', mbConfirmation, MB_YESNO) = IDNO then
+        Result := False;
+    end;
+  end;
+end;
