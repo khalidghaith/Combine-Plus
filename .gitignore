@@ -9,6 +9,8 @@ dist/
 build/
 out/
 py-dist/
+bin/
+lib/
 *.exe
 *.msi
 
