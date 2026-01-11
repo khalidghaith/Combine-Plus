@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combine+ | PDF Merging & Management</title>
+    <meta name="description" content="Combine+ is a PDF merging and managing software developed by Khalid Ghaith. Organize, merge, and view PDFs with ease.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="icon.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts: Inter (Close to Segoe UI) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', 'Inter', sans-serif;
+        }
+        
+        /* Custom Accent Color based on the app's Orange */
+        .text-accent { color: #f97316; }
+        .bg-accent { background-color: #f97316; }
+        .bg-accent-hover:hover { background-color: #ea580c; }
+        .border-accent { border-color: #f97316; }
+
+        /* Smooth reveal animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased selection:bg-orange-200 selection:text-orange-900">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center gap-3">
+                    <img class="h-10 w-10 rounded-lg shadow-sm" src="icon.png" alt="Combine+ Logo">
+                    <span class="font-bold text-xl tracking-tight text-gray-900">Combine<span class="text-accent">+</span></span>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#features" class="text-gray-600 hover:text-accent font-medium transition">Features</a>
+                    <a href="#gallery" class="text-gray-600 hover:text-accent font-medium transition">Gallery</a>
+                    <a href="#shortcuts" class="text-gray-600 hover:text-accent font-medium transition">Shortcuts</a>
+                    <a href="https://ko-fi.com/khalidghaith" target="_blank" class="px-5 py-2 rounded-full bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition flex items-center gap-2">
+                        <i class="fa-solid fa-mug-hot text-pink-500"></i> Support
+                    </a>
+                    <a href="https://github.com/khalidghaith/Combine-plus/releases" class="px-5 py-2 rounded-full bg-accent text-white font-medium hover:bg-orange-600 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+                        Download
+                    </a>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-gray-600 hover:text-gray-900 focus:outline-none">
+                        <i class="fa-solid fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Panel -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#features" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-accent hover:bg-gray-50">Features</a>
+                <a href="#gallery" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-accent hover:bg-gray-50">Gallery</a>
+                <a href="#shortcuts" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-accent hover:bg-gray-50">Shortcuts</a>
+                <a href="https://ko-fi.com/khalidghaith" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-accent hover:bg-gray-50">Support on Ko-fi</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-100 text-orange-600 text-sm font-semibold mb-6 animate-fade-in-up">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                    </span>
+                    Windows Desktop Application
+                </div>
+                <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 mb-6 leading-tight">
+                    Manage your PDFs with <br> <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">Combine+</span>
+                </h1>
+                <p class="mt-4 text-xl text-gray-600 mb-10 leading-relaxed">
+                    A clean, powerful tool to merge, rearrange, and manage your documents. Built for Windows with a focus on speed and simplicity.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <a href="https://github.com/khalidghaith/Combine-plus/releases" class="px-8 py-4 rounded-xl bg-accent text-white font-bold text-lg shadow-lg hover:bg-orange-600 hover:shadow-orange-500/30 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-windows"></i> Download for Windows
+                    </a>
+                    <a href="#features" class="px-8 py-4 rounded-xl bg-white text-gray-700 border border-gray-200 font-bold text-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 transition flex items-center justify-center gap-2">
+                        Learn More <i class="fa-solid fa-arrow-down text-sm"></i>
+                    </a>
+                </div>
+                <p class="mt-4 text-sm text-gray-400">Developed by Khalid Ghaith using Gemini</p>
+            </div>
+
+            <!-- Hero Image Showcase -->
+            <div class="mt-16 relative mx-auto max-w-5xl">
+                <div class="absolute -inset-1 bg-gradient-to-r from-orange-500 to-pink-500 rounded-2xl blur opacity-20"></div>
+                <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-white">
+                    <img src="Combine_plus_StartScreen.png" alt="Combine+ Start Screen" class="w-full h-auto">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section 1: Drag & Drop -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div class="reveal">
+                    <div class="h-12 w-12 bg-orange-100 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-layer-group text-orange-600 text-xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Effortless Organization</h2>
+                    <p class="text-lg text-gray-600 leading-relaxed mb-6">
+                        Importing content shouldn't be a chore. With Combine+, you can:
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-check text-green-500 mt-1"></i>
+                            <span class="text-gray-700"><strong>Drag & Drop</strong> files directly from Explorer.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-check text-green-500 mt-1"></i>
+                            <span class="text-gray-700"><strong>Paste Screenshots</strong> directly from your clipboard.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-check text-green-500 mt-1"></i>
+                            <span class="text-gray-700"><strong>Smart Selection</strong> with orange active states.</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="reveal relative">
+                    <div class="absolute -inset-4 bg-orange-100 rounded-2xl transform rotate-2"></div>
+                    <img src="Combine_plus_GridView.jpg" alt="Grid View Organization" class="relative rounded-lg shadow-xl border border-gray-100 w-full">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section 2: Rearrange -->
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center lg:flex-row-reverse">
+                <!-- Image on Left for Desktop -->
+                <div class="order-2 lg:order-1 reveal relative">
+                    <div class="absolute -inset-4 bg-gray-200 rounded-2xl transform -rotate-2"></div>
+                    <img src="Combine_plus_Rearrange_Grid.jpg" alt="Rearranging Files" class="relative rounded-lg shadow-xl border border-gray-100 w-full">
+                </div>
+                
+                <!-- Content on Right -->
+                <div class="order-1 lg:order-2 reveal">
+                    <div class="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-arrow-up-right-dots text-blue-600 text-xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Intuitive Rearranging</h2>
+                    <p class="text-lg text-gray-600 leading-relaxed mb-6">
+                        Order matters. Drag items to their perfect position using the visual insertion markers, or throw them to the "Drop Tail" to send them to the end of the line instantly.
+                    </p>
+                    <div class="p-4 bg-white rounded-lg border-l-4 border-accent shadow-sm">
+                        <p class="text-gray-700 italic">"Look for the orange insertion markers that indicate exactly where your file will land."</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section 3: Built-in Viewer -->
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div class="reveal">
+                    <div class="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
+                        <i class="fa-regular fa-eye text-purple-600 text-xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Built-in Previewer</h2>
+                    <p class="text-lg text-gray-600 leading-relaxed mb-6">
+                        Stop opening external apps just to check a page. Double-click any item to launch the integrated viewer.
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-center gap-3">
+                            <span class="bg-gray-100 p-2 rounded-lg text-gray-600"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
+                            <span class="text-gray-700">Zoom in for details</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="bg-gray-100 p-2 rounded-lg text-gray-600"><i class="fa-solid fa-forward"></i></span>
+                            <span class="text-gray-700">Flip through pages instantly</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="reveal">
+                    <img src="Combine_plus_ViewPage.jpg" alt="PDF Viewer" class="rounded-lg shadow-xl border border-gray-100 w-full transform hover:scale-105 transition duration-500">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery / Themes Section -->
+    <section id="gallery" class="py-20 bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold mb-4">Designed for Your Environment</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto mb-12">Whether you prefer a bright workspace or a dark mode aesthetic, Combine+ adapts to your needs.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="group relative overflow-hidden rounded-xl aspect-video cursor-pointer">
+                    <img src="Combine_plus_StartScreen.png" alt="Light Theme" class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
+                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
+                        <span class="text-sm font-medium text-white">Light Theme</span>
+                    </div>
+                </div>
+                <div class="group relative overflow-hidden rounded-xl aspect-video cursor-pointer">
+                    <img src="Combine_plus_Rearrange_List.png" alt="List View" class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
+                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
+                        <span class="text-sm font-medium text-white">List View</span>
+                    </div>
+                </div>
+                <div class="group relative overflow-hidden rounded-xl aspect-video cursor-pointer">
+                    <img src="Combine_plus_ExportSuccess.jpg" alt="Success Modal" class="object-cover w-full h-full opacity-90 group-hover:opacity-100 transition transform group-hover:scale-105">
+                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4">
+                        <span class="text-sm font-medium text-white">Export Success</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Shortcuts Section -->
+    <section id="shortcuts" class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900">Power User Shortcuts</h2>
+                <p class="text-gray-600 mt-2">Speed up your workflow</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Card 1 -->
+                <div class="p-6 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center">
+                    <span class="text-gray-700 font-medium">Paste Files / Images</span>
+                    <kbd class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-500 font-mono shadow-sm">Ctrl + V</kbd>
+                </div>
+                <!-- Card 2 -->
+                <div class="p-6 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center">
+                    <span class="text-gray-700 font-medium">Select All</span>
+                    <kbd class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-500 font-mono shadow-sm">Ctrl + A</kbd>
+                </div>
+                <!-- Card 3 -->
+                <div class="p-6 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center">
+                    <span class="text-gray-700 font-medium">Remove Item</span>
+                    <kbd class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-500 font-mono shadow-sm">Del</kbd>
+                </div>
+                <!-- Card 4 -->
+                <div class="p-6 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center">
+                    <span class="text-gray-700 font-medium">Preview Item</span>
+                    <kbd class="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-500 font-mono shadow-sm">Enter</kbd>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ko-fi Support Section -->
+    <section class="py-24 bg-gradient-to-b from-orange-50 to-white text-center">
+        <div class="max-w-3xl mx-auto px-4">
+            <div class="inline-block p-4 rounded-full bg-white shadow-xl mb-6">
+                <img src="icon.png" alt="Developer" class="w-16 h-16 rounded-full mx-auto">
+            </div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Support the Development</h2>
+            <p class="text-gray-600 mb-8 text-lg">
+                Combine+ is a passion project developed by Khalid Ghaith. If this tool saves you time, consider buying me a coffee to keep the updates coming!
+            </p>
+            
+            <a href="https://ko-fi.com/khalidghaith" target="_blank" class="inline-flex items-center gap-3 px-8 py-4 bg-[#FF5E5B] hover:bg-[#ff4642] text-white rounded-full font-bold text-lg shadow-lg shadow-red-200 transition-all transform hover:-translate-y-1">
+                <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi cup" class="w-6 h-auto animate-bounce">
+                Buy me a Coffee
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 pt-12 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center gap-3 mb-4 md:mb-0">
+                <img src="icon.png" alt="Logo" class="w-8 h-8 rounded opacity-80">
+                <span class="font-semibold text-gray-900">Combine+</span>
+            </div>
+            
+            <div class="text-sm text-gray-500 text-center md:text-right">
+                <p>&copy; 2024 Khalid Ghaith. All rights reserved.</p>
+                <div class="mt-2 space-x-4">
+                    <a href="https://github.com/khalidghaith/Combine-plus" class="hover:text-accent transition"><i class="fa-brands fa-github"></i> GitHub</a>
+                    <a href="#" class="hover:text-accent transition">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Mobile Menu Toggle
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+
+        btn.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+        });
+
+        // Scroll Reveal Animation
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                var elementVisible = 150;
+                if (elementTop < windowHeight - elementVisible) {
+                    reveals[i].classList.add("active");
+                }
+            }
+        }
+        window.addEventListener("scroll", reveal);
+        // Trigger once on load
+        reveal();
+    </script>
+</body>
+</html>
