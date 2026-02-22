@@ -69,56 +69,67 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 ; 1. PDF
 Root: HKCR; Subkey: "SystemFileAssociations\.pdf\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.pdf\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.pdf\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.pdf\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 2. JPG
 Root: HKCR; Subkey: "SystemFileAssociations\.jpg\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.jpg\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.jpg\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.jpg\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 3. JPEG
 Root: HKCR; Subkey: "SystemFileAssociations\.jpeg\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.jpeg\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.jpeg\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.jpeg\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 4. PNG
 Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.png\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 5. WEBP
 Root: HKCR; Subkey: "SystemFileAssociations\.webp\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.webp\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.webp\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.webp\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 6. AVIF
 Root: HKCR; Subkey: "SystemFileAssociations\.avif\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.avif\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.avif\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.avif\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 7. BMP
 Root: HKCR; Subkey: "SystemFileAssociations\.bmp\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.bmp\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.bmp\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.bmp\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 8. GIF
 Root: HKCR; Subkey: "SystemFileAssociations\.gif\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.gif\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.gif\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.gif\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 9. SVG
 Root: HKCR; Subkey: "SystemFileAssociations\.svg\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.svg\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.svg\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.svg\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 10. TIF
 Root: HKCR; Subkey: "SystemFileAssociations\.tif\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.tif\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.tif\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.tif\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 ; 11. TIFF
 Root: HKCR; Subkey: "SystemFileAssociations\.tiff\shell\CombinePlus"; ValueType: string; ValueName: ""; ValueData: "Merge with Combine+"; Flags: uninsdeletekey; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.tiff\shell\CombinePlus"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"; Tasks: contextmenu
+Root: HKCR; Subkey: "SystemFileAssociations\.tiff\shell\CombinePlus"; ValueType: string; ValueName: "MultiSelectModel"; ValueData: "Player"; Tasks: contextmenu
 Root: HKCR; Subkey: "SystemFileAssociations\.tiff\shell\CombinePlus\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Tasks: contextmenu
 
 [Run]
