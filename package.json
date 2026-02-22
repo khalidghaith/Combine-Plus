@@ -1,6 +1,6 @@
 {
   "name": "combine-plus",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Combine+ PDF Merger",
   "main": "main.js",
   "scripts": {

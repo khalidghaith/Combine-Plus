@@ -90,7 +90,7 @@ ipcMain.handle('save-file-dialog', async () => {
 });
 
 ipcMain.handle('merge-files', async (event, data) => {
-    const { items, outputPath, resizeToFit } = data;
+    const { items, outputPath, resizeToFit, metadata } = data;
     const tempDir = path.join(app.getPath('temp'), 'combine-plus-temp');
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
@@ -175,7 +175,7 @@ ipcMain.handle('merge-files', async (event, data) => {
             }
         }
 
-        const payload = JSON.stringify({ items: processedItems, outputPath, resizeToFit: !!resizeToFit });
+        const payload = JSON.stringify({ items: processedItems, outputPath, resizeToFit: !!resizeToFit, metadata });
 
         return new Promise((resolve) => {
             const runArgs = isPackaged ? [payload] : [enginePath, payload];

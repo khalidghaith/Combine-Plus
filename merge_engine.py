@@ -77,9 +77,16 @@ def merge_pdfs(input_data):
             
             # --- 2. Robust Scaling Logic ---
             if resize_to_fit:
+                # Extract the current absolute rotation of the page
+                try:
+                    # Try accessing the property directly
+                    current_rot = int(getattr(new_page, 'rotation', new_page.get('/Rotate', 0)))
+                except Exception:
+                    current_rot = 0
+                    
                 # When a page is rotated by 90 or 270 degrees, its visual 
                 # width and height are swapped relative to its mediabox.
-                is_swapped = (rotation / 90) % 2 != 0
+                is_swapped = (current_rot / 90) % 2 != 0
                 
                 # Get the internal dimensions
                 pw = float(new_page.mediabox.width)

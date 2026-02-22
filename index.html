@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,7 @@
     <link rel="icon" type="image/x-icon" href="./icon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+
     <!-- PDF.js library for rendering thumbnails -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
@@ -20,77 +21,105 @@
 
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="theme-light">
 
     <!-- Browser File Input Fallback (Hidden) -->
-    <input type="file" id="file-input" multiple class="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.svg,.tif,.tiff,.avif,.bmp,.gif">
+    <input type="file" id="file-input" multiple class="hidden"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,.svg,.tif,.tiff,.avif,.bmp,.gif">
 
     <div id="app-window" class="theme-light relative flex flex-col h-screen">
-        
+
         <!-- Streamlined Header & Toolbar -->
-        <div class="px-4 py-2 flex items-center border-b border-[var(--border)] z-10 bg-[var(--bg-secondary)] h-14 shrink-0">
+        <div
+            class="px-4 py-2 flex items-center border-b border-[var(--border)] z-10 bg-[var(--bg-secondary)] h-14 shrink-0">
             <!-- Left: Logo -->
             <div class="flex-1 flex items-center justify-start gap-3 min-w-fit">
                 <img src="./icon.ico" alt="Logo" class="w-8 h-8 rounded-lg shadow-sm object-contain bg-transparent">
                 <div>
                     <h1 class="text-lg font-bold tracking-tight leading-none text-[var(--text-main)]">Combine+</h1>
                 </div>
-                
+
                 <div class="w-px h-4 bg-[var(--border)] mx-1"></div>
-                
+
                 <div class="flex items-center gap-1">
-                    <button id="btn-settings" onclick="toggleSettings()" class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]" title="Settings"><i class="fas fa-cog text-xs"></i></button>
-                    <button id="btn-help" onclick="toggleHelp()" class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]" title="Help"><i class="fas fa-question-circle text-xs"></i></button>
-                    <button onclick="toggleTheme()" class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]" title="Toggle Theme"><i id="theme-icon" class="fas fa-moon text-xs"></i></button>
+                    <button id="btn-settings" onclick="toggleSettings()"
+                        class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]"
+                        title="Settings"><i class="fas fa-cog text-xs"></i></button>
+                    <button id="btn-help" onclick="toggleHelp()"
+                        class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]"
+                        title="Help"><i class="fas fa-question-circle text-xs"></i></button>
+                    <button onclick="toggleTheme()"
+                        class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]"
+                        title="Toggle Theme"><i id="theme-icon" class="fas fa-moon text-xs"></i></button>
                 </div>
             </div>
-            
+
             <!-- Center: Main Actions -->
             <div class="flex items-center gap-1 justify-center shrink-0">
-                <button id="undo-btn" onclick="undo()" class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center text-[var(--text-sub)] disabled:opacity-30 transition-colors" title="Undo (Ctrl+Z)" disabled><i class="fas fa-undo text-xs"></i></button>
-                <button id="redo-btn" onclick="redo()" class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center text-[var(--text-sub)] disabled:opacity-30 transition-colors" title="Redo (Ctrl+Y)" disabled><i class="fas fa-redo text-xs"></i></button>
-                
-                <div class="w-px h-4 bg-[var(--border)] mx-2"></div>
-                
-                <button onclick="handleAddFiles()" class="h-8 px-3 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center text-[var(--text-main)] text-xs font-medium transition-colors gap-2 border border-[var(--border)] bg-[var(--bg-container)] shadow-sm" title="Add Files (Ctrl+O)">
-                    <i class="fas fa-plus text-[var(--accent)]"></i> 
-                    <span>Add Files</span>
-                </button>
-                
+                <button id="undo-btn" onclick="undo()"
+                    class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center text-[var(--text-sub)] disabled:opacity-30 transition-colors"
+                    title="Undo (Ctrl+Z)" disabled><i class="fas fa-undo text-xs"></i></button>
+                <button id="redo-btn" onclick="redo()"
+                    class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center text-[var(--text-sub)] disabled:opacity-30 transition-colors"
+                    title="Redo (Ctrl+Y)" disabled><i class="fas fa-redo text-xs"></i></button>
+
                 <div class="w-px h-4 bg-[var(--border)] mx-2"></div>
 
-                <button id="btn-delete" onclick="deleteSelected()" class="w-8 h-8 rounded hover:bg-red-50 text-red-500 disabled:opacity-30 disabled:hover:bg-transparent flex items-center justify-center transition-colors" title="Delete Selected (Del)" disabled><i class="fas fa-trash-alt text-xs"></i></button>
-                <button onclick="resetApp()" class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center text-[var(--text-sub)] transition-colors" title="Reset App"><i class="fas fa-sync-alt text-xs"></i></button>
+                <button onclick="handleAddFiles()"
+                    class="h-8 px-3 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center text-[var(--text-main)] text-xs font-medium transition-colors gap-2 border border-[var(--border)] bg-[var(--bg-container)] shadow-sm"
+                    title="Add Files (Ctrl+O)">
+                    <i class="fas fa-plus text-[var(--accent)]"></i>
+                    <span>Add Files</span>
+                </button>
+
+                <div class="w-px h-4 bg-[var(--border)] mx-2"></div>
+
+                <button id="btn-delete" onclick="deleteSelected()"
+                    class="w-8 h-8 rounded hover:bg-red-50 text-red-500 disabled:opacity-30 disabled:hover:bg-transparent flex items-center justify-center transition-colors"
+                    title="Delete Selected (Del)" disabled><i class="fas fa-trash-alt text-xs"></i></button>
+                <button onclick="resetApp()"
+                    class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center text-[var(--text-sub)] transition-colors"
+                    title="Reset App"><i class="fas fa-sync-alt text-xs"></i></button>
             </div>
-            
+
             <!-- Right: View & Settings -->
             <div class="flex-1 flex items-center gap-2 min-w-fit justify-end">
                 <div class="bg-[var(--bg-secondary)] p-0.5 rounded-md flex border border-[var(--border)]">
-                    <button onclick="switchView('grid')" id="btn-grid" class="w-7 h-7 rounded text-xs transition-all bg-white shadow-sm text-[var(--text-main)] flex items-center justify-center" title="Grid View"><i class="fas fa-th-large"></i></button>
-                    <button onclick="switchView('list')" id="btn-list" class="w-7 h-7 rounded text-xs transition-all text-[var(--text-sub)] flex items-center justify-center" title="List View"><i class="fas fa-list"></i></button>
+                    <button onclick="switchView('grid')" id="btn-grid"
+                        class="w-7 h-7 rounded text-xs transition-all bg-white shadow-sm text-[var(--text-main)] flex items-center justify-center"
+                        title="Grid View"><i class="fas fa-th-large"></i></button>
+                    <button onclick="switchView('list')" id="btn-list"
+                        class="w-7 h-7 rounded text-xs transition-all text-[var(--text-sub)] flex items-center justify-center"
+                        title="List View"><i class="fas fa-list"></i></button>
                 </div>
             </div>
         </div>
 
         <!-- Settings Modal -->
-        <div id="settings-modal" class="absolute top-16 left-40 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-xl p-4 z-50 hidden">
+        <div id="settings-modal"
+            class="absolute top-16 left-40 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-xl p-4 z-50 hidden">
             <h3 class="font-bold mb-3 border-b border-[var(--border)] pb-2">PDF Metadata</h3>
             <div class="space-y-3">
                 <div>
                     <label class="text-xs font-semibold text-[var(--text-sub)]">Title</label>
-                    <input type="text" id="meta-title" class="w-full px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm">
+                    <input type="text" id="meta-title"
+                        class="w-full px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm">
                 </div>
                 <div>
                     <label class="text-xs font-semibold text-[var(--text-sub)]">Author</label>
-                    <input type="text" id="meta-author" class="w-full px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm">
+                    <input type="text" id="meta-author"
+                        class="w-full px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm">
                 </div>
                 <div class="pt-2 border-t border-[var(--border)]">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="resize-chk" onchange="toggleResizeSetting()" class="rounded text-teal-500">
+                        <input type="checkbox" id="resize-chk" onchange="toggleResizeSetting()"
+                            class="rounded text-teal-500">
                         <span class="text-sm">Resize pages to fit width</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer mt-2">
-                        <input type="checkbox" id="keep-expanded-chk" onchange="toggleKeepExpanded()" class="rounded text-teal-500">
+                        <input type="checkbox" id="keep-expanded-chk" onchange="toggleKeepExpanded()"
+                            class="rounded text-teal-500">
                         <span class="text-sm">Keep folders expanded</span>
                     </label>
                 </div>
@@ -98,44 +127,68 @@
         </div>
 
         <!-- Help Modal -->
-        <div id="help-modal" class="absolute top-16 left-52 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-xl p-5 z-50 hidden">
-            <h3 class="font-bold mb-3 border-b border-[var(--border)] pb-2 flex items-center gap-2"><i class="fas fa-info-circle text-[var(--accent)]"></i> Help & Tips</h3>
+        <div id="help-modal"
+            class="absolute top-16 left-52 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-xl p-5 z-50 hidden">
+            <h3 class="font-bold mb-3 border-b border-[var(--border)] pb-2 flex items-center gap-2"><i
+                    class="fas fa-info-circle text-[var(--accent)]"></i> Help & Tips</h3>
             <ul class="text-sm space-y-3 text-[var(--text-sub)]">
-                <li class="flex items-start gap-2"><i class="fas fa-mouse-pointer mt-1 opacity-50"></i> <span><strong>Shift+Click</strong> or <strong>Ctrl+Click</strong> to select multiple items.</span></li>
-                <li class="flex items-start gap-2"><i class="fas fa-arrow-right mt-1 opacity-50"></i> <span><strong>Arrows</strong> to navigate. <strong>Shift+Arrows</strong> for top-level only.</span></li>
-                <li class="flex items-start gap-2"><i class="fas fa-exchange-alt mt-1 opacity-50"></i> <span><strong>Ctrl+Arrows</strong> to move selected item/page.</span></li>
-                <li class="flex items-start gap-2"><i class="fas fa-arrows-alt mt-1 opacity-50"></i> <span><strong>Drag & Drop</strong> pages to rearrange them or move them between files.</span></li>
-                <li class="flex items-start gap-2"><i class="fas fa-search-plus mt-1 opacity-50"></i> <span><strong>Ctrl + Scroll</strong> in Grid View to zoom in/out (change column count).</span></li>
-                <li class="flex items-start gap-2"><i class="fas fa-keyboard mt-1 opacity-50"></i> <span><strong>Ctrl+D</strong> Duplicate, <strong>Ctrl+R</strong> Rotate, <strong>Del</strong> Delete.</span></li>
-                <li class="flex items-start gap-2"><i class="fas fa-plus-circle mt-1 opacity-50"></i> <span><strong>Ctrl+O</strong> Add Files, <strong>Ctrl+S</strong> Export, <strong>Ctrl+Shift+R</strong> Reset App.</span></li>
-                <li class="flex items-start gap-2"><i class="fas fa-clipboard mt-1 opacity-50"></i> <span><strong>Ctrl+V</strong> to paste files or screenshots from clipboard.</span></li>
+                <li class="flex items-start gap-2"><i class="fas fa-mouse-pointer mt-1 opacity-50"></i>
+                    <span><strong>Shift+Click</strong> or <strong>Ctrl+Click</strong> to select multiple items.</span>
+                </li>
+                <li class="flex items-start gap-2"><i class="fas fa-arrow-right mt-1 opacity-50"></i>
+                    <span><strong>Arrows</strong> to navigate. <strong>Shift+Arrows</strong> for top-level only.</span>
+                </li>
+                <li class="flex items-start gap-2"><i class="fas fa-exchange-alt mt-1 opacity-50"></i>
+                    <span><strong>Ctrl+Arrows</strong> to move selected item/page.</span></li>
+                <li class="flex items-start gap-2"><i class="fas fa-arrows-alt mt-1 opacity-50"></i> <span><strong>Drag
+                            & Drop</strong> pages to rearrange them or move them between files.</span></li>
+                <li class="flex items-start gap-2"><i class="fas fa-search-plus mt-1 opacity-50"></i> <span><strong>Ctrl
+                            + Scroll</strong> in Grid View to zoom in/out (change column count).</span></li>
+                <li class="flex items-start gap-2"><i class="fas fa-keyboard mt-1 opacity-50"></i>
+                    <span><strong>Ctrl+D</strong> Duplicate, <strong>Ctrl+R</strong> Rotate, <strong>Del</strong>
+                        Delete.</span></li>
+                <li class="flex items-start gap-2"><i class="fas fa-plus-circle mt-1 opacity-50"></i>
+                    <span><strong>Ctrl+O</strong> Add Files, <strong>Ctrl+S</strong> Export,
+                        <strong>Ctrl+Shift+R</strong> Reset App.</span></li>
+                <li class="flex items-start gap-2"><i class="fas fa-clipboard mt-1 opacity-50"></i>
+                    <span><strong>Ctrl+V</strong> to paste files or screenshots from clipboard.</span></li>
             </ul>
         </div>
 
         <!-- Reset Confirmation Modal -->
-        <div id="reset-modal" class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/50 hidden">
-            <div class="modal-content bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-xl p-6 w-96 max-w-full">
+        <div id="reset-modal"
+            class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/50 hidden">
+            <div
+                class="modal-content bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-xl p-6 w-96 max-w-full">
                 <div class="flex items-center gap-4 mb-4">
-                    <div class="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center flex-shrink-0">
+                    <div
+                        class="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center flex-shrink-0">
                         <i class="fas fa-exclamation-triangle text-xl"></i>
                     </div>
                     <div>
                         <h3 class="text-lg font-bold text-[var(--color)]">Reset App?</h3>
-                        <p class="text-sm text-[var(--text-sub)]">This will remove all files and clear your history. This action cannot be undone.</p>
+                        <p class="text-sm text-[var(--text-sub)]">This will remove all files and clear your history.
+                            This action cannot be undone.</p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">
-                    <button onclick="closeResetModal()" class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--hover-bg)] text-[var(--text-sub)] transition-colors">Cancel</button>
-                    <button onclick="confirmResetApp()" class="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white shadow-md transition-colors">Yes, Reset</button>
+                    <button onclick="closeResetModal()"
+                        class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--hover-bg)] text-[var(--text-sub)] transition-colors">Cancel</button>
+                    <button onclick="confirmResetApp()"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white shadow-md transition-colors">Yes,
+                        Reset</button>
                 </div>
             </div>
         </div>
 
         <!-- Success/Message Modal -->
-        <div id="message-modal" class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/50 hidden">
-            <div class="modal-content bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-xl p-6 w-96 max-w-full">
+        <div id="message-modal"
+            class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/50 hidden">
+            <div
+                class="modal-content bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-xl p-6 w-96 max-w-full">
                 <div class="flex items-center gap-4 mb-4">
-                    <div id="msg-icon-bg" class="w-12 h-12 rounded-full bg-green-100 text-green-500 flex items-center justify-center flex-shrink-0">
+                    <div id="msg-icon-bg"
+                        class="w-12 h-12 rounded-full bg-green-100 text-green-500 flex items-center justify-center flex-shrink-0">
                         <i id="msg-icon" class="fas fa-check text-xl"></i>
                     </div>
                     <div>
@@ -144,41 +197,50 @@
                     </div>
                 </div>
                 <div class="flex justify-end pt-2">
-                    <button onclick="closeMessageModal()" class="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white shadow-md transition-colors">OK</button>
+                    <button onclick="closeMessageModal()"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white shadow-md transition-colors">OK</button>
                 </div>
             </div>
         </div>
 
         <!-- Main Content Area -->
         <div id="main-scroll" class="flex-1 overflow-y-auto relative p-8">
-            
+
             <!-- START PAGE -->
-            <div id="start-view" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity">
-                <div class="border-2 border-dashed border-[var(--border)] rounded-2xl p-12 text-center pointer-events-auto cursor-pointer hover:bg-[var(--bg-secondary)] transition-all hover:scale-105 hover:shadow-xl" onclick="handleAddFiles()">
-                     <i class="fas fa-file-import text-6xl text-gray-300 mb-4"></i>
-                     <h2 class="text-xl font-bold text-gray-500">Drag PDF/Images here</h2>
-                     <p class="text-gray-400">PDF, JPG, PNG, WEBP, SVG</p>
+            <div id="start-view"
+                class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-opacity">
+                <div class="border-2 border-dashed border-[var(--border)] rounded-2xl p-12 text-center pointer-events-auto cursor-pointer hover:bg-[var(--bg-secondary)] transition-all hover:scale-105 hover:shadow-xl"
+                    onclick="handleAddFiles()">
+                    <i class="fas fa-file-import text-6xl text-gray-300 mb-4"></i>
+                    <h2 class="text-xl font-bold text-gray-500">Drag PDF/Images here</h2>
+                    <p class="text-gray-400">PDF, JPG, PNG, WEBP, SVG</p>
                 </div>
             </div>
 
             <!-- Grid View -->
-            <div id="grid-view" class="grid gap-6 pb-24 transition-opacity duration-200 hidden" onclick="handleBgClick(event)"></div>
+            <div id="grid-view" class="grid gap-6 pb-24 transition-opacity duration-200 hidden"
+                onclick="handleBgClick(event)"></div>
 
             <!-- List View -->
-            <div id="list-view" class="hidden flex flex-col gap-2 pb-48 max-w-4xl mx-auto transition-opacity duration-200" onclick="handleBgClick(event)"></div>
-            
+            <div id="list-view"
+                class="hidden flex flex-col gap-2 pb-48 max-w-4xl mx-auto transition-opacity duration-200"
+                onclick="handleBgClick(event)"></div>
+
             <!-- Dynamic Markers -->
             <div id="marker-v" class="insertion-marker-vertical hidden"></div>
             <div id="marker-h" class="insertion-marker-horizontal hidden"></div>
         </div>
 
         <!-- Footer Toolbar -->
-        <div class="px-4 py-2 flex justify-between items-center border-t border-[var(--border)] z-10 bg-[var(--bg-secondary)] h-14 shrink-0 relative">
+        <div
+            class="px-4 py-2 flex justify-between items-center border-t border-[var(--border)] z-10 bg-[var(--bg-secondary)] h-14 shrink-0 relative">
             <div class="flex items-center min-w-fit">
                 <p id="status-msg" class="text-xs text-[var(--text-sub)] font-medium"></p>
             </div>
             <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <button onclick="exportPdf()" id="export-btn" class="w-24 h-9 rounded-full bg-orange-500 hover:bg-orange-600 flex items-center justify-center text-white shadow-sm transition-transform transition-colors duration-300 z-20" title="Export PDF (Ctrl+S)">
+                <button onclick="exportPdf()" id="export-btn"
+                    class="w-24 h-9 rounded-full bg-orange-500 hover:bg-orange-600 flex items-center justify-center text-white shadow-sm transition-transform transition-colors duration-300 z-20"
+                    title="Export PDF (Ctrl+S)">
                     <i class="fas fa-download transition-transform duration-300 hover:scale-110"></i>
                 </button>
             </div>
@@ -186,46 +248,78 @@
 
     </div>
 
+    <!-- Custom Context Menu for List View -->
+    <div id="list-context-menu"
+        class="absolute z-50 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 hidden w-40">
+        <button onclick="expandAllToggles()"
+            class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2">
+            <i class="fas fa-expand-arrows-alt w-4 text-center text-[var(--text-sub)]"></i> Expand All
+        </button>
+        <button onclick="collapseAllToggles()"
+            class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2">
+            <i class="fas fa-compress-arrows-alt w-4 text-center text-[var(--text-sub)]"></i> Collapse All
+        </button>
+    </div>
+
     <!-- Detail Viewer Modal -->
-    <div id="viewer-modal" class="fixed inset-0 z-[200] bg-black/95 hidden flex flex-col transition-opacity duration-200 opacity-0">
+    <div id="viewer-modal"
+        class="fixed inset-0 z-[200] bg-black/95 hidden flex flex-col transition-opacity duration-200 opacity-0">
         <!-- Viewer Toolbar -->
-        <div class="flex items-center justify-between px-4 py-3 bg-[#222] text-gray-200 border-b border-gray-800 select-none">
+        <div
+            class="flex items-center justify-between px-4 py-3 bg-[#222] text-gray-200 border-b border-gray-800 select-none">
             <div class="flex items-center gap-4 min-w-0">
                 <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-gray-400">
                     <i class="fas fa-file-pdf"></i>
                 </div>
                 <div class="flex flex-col min-w-0">
-                    <span id="viewer-filename" class="font-semibold text-sm text-white truncate max-w-[300px]">Filename.pdf</span>
+                    <span id="viewer-filename"
+                        class="font-semibold text-sm text-white truncate max-w-[300px]">Filename.pdf</span>
                     <span id="viewer-counter" class="text-xs text-gray-400">Page 1 of 1</span>
                 </div>
             </div>
-            
+
             <div class="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
-                <button onclick="viewerZoomOut()" class="w-8 h-8 hover:bg-gray-700 rounded flex items-center justify-center transition-colors" title="Zoom Out (Ctrl -)"><i class="fas fa-minus text-xs"></i></button>
-                <input type="text" id="viewer-scale-input" class="w-16 bg-transparent border-none text-center text-sm font-mono text-white focus:ring-0" value="100%" readonly>
-                <button onclick="viewerZoomIn()" class="w-8 h-8 hover:bg-gray-700 rounded flex items-center justify-center transition-colors" title="Zoom In (Ctrl +)"><i class="fas fa-plus text-xs"></i></button>
+                <button onclick="viewerZoomOut()"
+                    class="w-8 h-8 hover:bg-gray-700 rounded flex items-center justify-center transition-colors"
+                    title="Zoom Out (Ctrl -)"><i class="fas fa-minus text-xs"></i></button>
+                <input type="text" id="viewer-scale-input"
+                    class="w-16 bg-transparent border-none text-center text-sm font-mono text-white focus:ring-0"
+                    value="100%" readonly>
+                <button onclick="viewerZoomIn()"
+                    class="w-8 h-8 hover:bg-gray-700 rounded flex items-center justify-center transition-colors"
+                    title="Zoom In (Ctrl +)"><i class="fas fa-plus text-xs"></i></button>
                 <div class="w-px h-5 bg-gray-700 mx-1"></div>
-                <button onclick="viewerToggleMode()" id="viewer-mode-btn" class="px-3 py-1 text-xs font-medium bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors w-20">Vector</button>
+                <button onclick="viewerToggleMode()" id="viewer-mode-btn"
+                    class="px-3 py-1 text-xs font-medium bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors w-20">Vector</button>
             </div>
 
             <div class="flex items-center gap-2">
-                 <button onclick="closeViewer()" class="w-8 h-8 hover:bg-red-500/20 hover:text-red-500 rounded flex items-center justify-center transition-colors" title="Close (Esc)"><i class="fas fa-times"></i></button>
+                <button onclick="closeViewer()"
+                    class="w-8 h-8 hover:bg-red-500/20 hover:text-red-500 rounded flex items-center justify-center transition-colors"
+                    title="Close (Esc)"><i class="fas fa-times"></i></button>
             </div>
         </div>
-        
+
         <!-- Viewer Viewport -->
         <div id="viewer-viewport" class="flex-1 overflow-hidden relative flex p-8 cursor-grab active:cursor-grabbing">
-            <div id="viewer-content" class="shadow-2xl transition-transform origin-center bg-white min-w-[100px] min-h-[100px] m-auto"></div>
+            <div id="viewer-content"
+                class="shadow-2xl transition-transform origin-center bg-white min-w-[100px] min-h-[100px] m-auto"></div>
         </div>
-        
+
         <!-- Navigation Overlay -->
-        <button onclick="viewerPrevPage()" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-[var(--accent)] text-white/70 hover:text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-all transform hover:scale-110"><i class="fas fa-chevron-left"></i></button>
-        <button onclick="viewerNextPage()" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-[var(--accent)] text-white/70 hover:text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-all transform hover:scale-110"><i class="fas fa-chevron-right"></i></button>
-        
+        <button onclick="viewerPrevPage()"
+            class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-[var(--accent)] text-white/70 hover:text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-all transform hover:scale-110"><i
+                class="fas fa-chevron-left"></i></button>
+        <button onclick="viewerNextPage()"
+            class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-[var(--accent)] text-white/70 hover:text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-all transform hover:scale-110"><i
+                class="fas fa-chevron-right"></i></button>
+
         <!-- Loading Indicator -->
-        <div id="viewer-loading" class="absolute inset-0 flex items-center justify-center bg-black/20 z-50 hidden pointer-events-none">
+        <div id="viewer-loading"
+            class="absolute inset-0 flex items-center justify-center bg-black/20 z-50 hidden pointer-events-none">
             <div class="bg-black/80 text-white px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-md">
-                <i class="fas fa-circle-notch fa-spin text-xs"></i> <span class="text-xs font-medium">Rendering...</span>
+                <i class="fas fa-circle-notch fa-spin text-xs"></i> <span
+                    class="text-xs font-medium">Rendering...</span>
             </div>
         </div>
     </div>
@@ -233,4 +327,5 @@
     <!-- START OF LOGIC -->
     <script src="logic.js"></script>
 </body>
+
 </html>

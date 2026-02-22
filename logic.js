@@ -15,7 +15,7 @@ try {
         path = require('path');
         os = require('os');
         isElectron = true;
-        try { appVersion = require('./package.json').version; } catch(e) {}
+        try { appVersion = require('./package.json').version; } catch (e) { }
         console.log("Environment: Real Electron App");
 
         ipcRenderer.on('add-files-from-system', (event, filePaths) => {
@@ -39,14 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let state = {
         theme: initialSettings.theme,
         view: initialSettings.view,
-        resizeToFit: initialSettings.resizeToFit, 
+        resizeToFit: initialSettings.resizeToFit,
         gridCols: initialSettings.gridCols || 3,
         keepExpanded: initialSettings.keepExpanded || false,
         expandedContainerId: null,
         selected: new Set(),
         lastSelectedId: null,
         items: [],
-        history: [], 
+        history: [],
         future: [],
         // Viewer State
         viewer: {
@@ -65,14 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderDebounce: null
         },
     };
-    
+
     // Apply initial visual settings immediately
     document.body.className = `theme-${state.theme}`;
     document.getElementById('app-window').className = `theme-${state.theme} relative`;
     document.getElementById('theme-icon').className = state.theme === 'light' ? 'fas fa-moon text-xs' : 'fas fa-sun text-xs';
-    
+
     // PDF Caching for Thumbnails
-    let pdfDocCache = {}; 
+    let pdfDocCache = {};
 
     const dom = {
         window: document.getElementById('app-window'),
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerFilename: document.getElementById('viewer-filename'),
         viewerCounter: document.getElementById('viewer-counter')
     };
-    
+
     // --- INJECT ABOUT BUTTON ---
     const helpBtn = document.getElementById('btn-help');
     if (helpBtn && helpBtn.parentNode) {
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             touchStartItem = target;
             const touch = e.touches[0];
-            
+
             if (touchDragTimer) clearTimeout(touchDragTimer);
             touchDragTimer = setTimeout(() => startTouchDrag(target, touch), 300);
         };
@@ -345,8 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const touch = e.touches[0];
                 const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
                 handleItemReorderDragOver({
-                    preventDefault: () => {},
-                    stopPropagation: () => {},
+                    preventDefault: () => { },
+                    stopPropagation: () => { },
                     target: elementUnder || document.body,
                     clientX: touch.clientX,
                     clientY: touch.clientY
@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (touchDragTimer) { clearTimeout(touchDragTimer); touchDragTimer = null; }
             if (activeDrag && activeDrag.type === 'internal') {
                 if (e.cancelable) e.preventDefault();
-                handleItemReorderDrop({ preventDefault: () => {}, stopPropagation: () => {} });
+                handleItemReorderDrop({ preventDefault: () => { }, stopPropagation: () => { } });
                 if (touchStartItem) {
                     touchStartItem.classList.remove('dragging');
                     touchStartItem.style.pointerEvents = '';
@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         target.classList.add('dragging');
         target.style.pointerEvents = 'none';
         const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
-        handleItemReorderDragOver({ preventDefault: () => {}, stopPropagation: () => {}, target: elementUnder || document.body, clientX: touch.clientX, clientY: touch.clientY });
+        handleItemReorderDragOver({ preventDefault: () => { }, stopPropagation: () => { }, target: elementUnder || document.body, clientX: touch.clientX, clientY: touch.clientY });
     }
     initTouchSupport();
 
@@ -434,11 +434,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const scaleChange = dist / gesture.startDist;
             let newScale = gesture.startScale * scaleChange;
             newScale = Math.max(0.0008, Math.min(newScale, 64.0));
-            
+
             const oldScale = state.viewer.scale;
             const scaleRatio = newScale / oldScale;
             const rect = dom.viewerViewport.getBoundingClientRect();
-            
+
             // Calculate the point under the previous center (relative to content)
             const pX = gesture.startX - rect.left + dom.viewerViewport.scrollLeft;
             const pY = gesture.startY - rect.top + dom.viewerViewport.scrollTop;
@@ -448,14 +448,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Adjust scroll to keep that point under the new center
             dom.viewerViewport.scrollLeft = (pX * scaleRatio) - (centerX - rect.left);
             dom.viewerViewport.scrollTop = (pY * scaleRatio) - (centerY - rect.top);
-            
+
             gesture.startX = centerX;
             gesture.startY = centerY;
         } else if (state.view === 'grid') {
             // Grid Zoom
             const scaleChange = dist / gesture.startDist;
             let newCols = gesture.startCols;
-            
+
             if (scaleChange > 1.5) newCols = Math.max(1, gesture.startCols - 1);
             else if (scaleChange > 2.0) newCols = Math.max(1, gesture.startCols - 2);
             else if (scaleChange < 0.66) newCols = Math.min(8, gesture.startCols + 1);
@@ -495,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
             switchView(state.view === 'grid' ? 'list' : 'grid');
             return;
         }
-        
+
         // Modal Handling
         if (!dom.resetModal.classList.contains('hidden')) {
             const buttons = dom.resetModal.querySelectorAll('button');
@@ -535,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Undo / Redo
         if ((e.ctrlKey || e.metaKey)) {
-            if (e.key === 'z') { e.preventDefault(); undo(); return; } 
+            if (e.key === 'z') { e.preventDefault(); undo(); return; }
             else if (e.key === 'y') { e.preventDefault(); redo(); return; }
         }
 
@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Arrows > Select next item (Linear navigation)
         if (!e.ctrlKey && !e.altKey && !e.metaKey && e.key.startsWith('Arrow')) {
             e.preventDefault();
-            
+
             if (state.view === 'grid' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
                 navigateGrid(e.key, e.shiftKey);
                 return;
@@ -598,14 +598,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
     });
-    
+
     document.addEventListener('paste', async (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        
+
         if (e.clipboardData && e.clipboardData.files.length > 0) {
             e.preventDefault();
             const files = Array.from(e.clipboardData.files);
-            
+
             if (isElectron) {
                 const inputs = [];
                 for (const f of files) {
@@ -615,10 +615,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         try {
                             const buffer = Buffer.from(await f.arrayBuffer());
                             const ext = f.type ? f.type.split('/')[1] : 'png';
-                            const tempPath = path.join(os.tmpdir(), `pasted_${Date.now()}_${Math.random().toString(36).substr(2,5)}.${ext}`);
+                            const tempPath = path.join(os.tmpdir(), `pasted_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.${ext}`);
                             fs.writeFileSync(tempPath, buffer);
                             inputs.push(tempPath);
-                        } catch(err) { console.error("Paste error:", err); }
+                        } catch (err) { console.error("Paste error:", err); }
                     }
                 }
                 if (inputs.length > 0) processFiles(inputs, 'electron');
@@ -628,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    
+
     document.addEventListener('click', (e) => {
         if (!dom.settingsModal.classList.contains('hidden')) {
             if (!dom.settingsModal.contains(e.target) && !document.getElementById('btn-settings').contains(e.target)) {
@@ -647,8 +647,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 am.classList.add('hidden');
             }
         }
+        const listCtx = document.getElementById('list-context-menu');
+        if (listCtx && !listCtx.classList.contains('hidden')) {
+            if (!listCtx.contains(e.target)) {
+                listCtx.classList.add('hidden');
+            }
+        }
     });
-    
+
+    document.addEventListener('contextmenu', (e) => {
+        if (state.view === 'list') {
+            const listCtx = document.getElementById('list-context-menu');
+            if (listCtx) {
+                e.preventDefault();
+                listCtx.style.left = `${e.pageX}px`;
+                listCtx.style.top = `${e.pageY}px`;
+                listCtx.classList.remove('hidden');
+            }
+        }
+    });
+
     // --- GRID DENSITY & RESIZE HANDLING ---
     function updateGridDensity() {
         if (state.view !== 'grid') return;
@@ -683,11 +701,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rect = dom.viewerContent.getBoundingClientRect();
                 if (rect.width === 0 || rect.height === 0) return;
                 const viewportRect = dom.viewerViewport.getBoundingClientRect();
-                
+
                 // Calculate mouse position relative to the content
                 const offsetX = e.clientX - rect.left;
                 const offsetY = e.clientY - rect.top;
-                
+
                 // Calculate relative position (unclamped to allow zooming towards outside)
                 const percX = offsetX / rect.width;
                 const percY = offsetY / rect.height;
@@ -695,13 +713,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Enhanced Zoom: Smooth exponential zoom
                 const zoomIntensity = 0.0015;
                 const oldScale = state.viewer.scale;
-                
+
                 // Clamp delta to avoid massive jumps on fast scroll
                 const clampedDelta = Math.max(-200, Math.min(200, deltaVal));
-                
+
                 let newScale = oldScale * Math.exp(-clampedDelta * zoomIntensity);
                 newScale = Math.max(0.0008, Math.min(newScale, 64.0));
-                
+
                 // Prevent drift at limits
                 if (Math.abs(newScale - oldScale) < 0.00001) return;
 
@@ -724,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // We calculate a 'virtual' scroll position that accounts for CSS centering (margin: auto)
                 const viewportW = dom.viewerViewport.clientWidth;
                 const viewportH = dom.viewerViewport.clientHeight;
-                
+
                 let oldScrollX = dom.viewerViewport.scrollLeft;
                 let oldScrollY = dom.viewerViewport.scrollTop;
 
@@ -752,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderGrid();
         }
     }, { passive: false });
-    
+
     // --- PERSISTENCE FUNCTIONS ---
     function persistSettings() {
         localStorage.setItem('combine-app-settings', JSON.stringify({
@@ -760,12 +778,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
     }
 
-    window.toggleResizeSetting = function() {
+    window.toggleResizeSetting = function () {
         state.resizeToFit = document.getElementById('resize-chk').checked;
         persistSettings();
     }
 
-    window.toggleKeepExpanded = function() {
+    window.toggleKeepExpanded = function () {
         state.keepExpanded = document.getElementById('keep-expanded-chk').checked;
         persistSettings();
     }
@@ -775,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return JSON.stringify(state.items.map(item => {
             const { pages, ...restItem } = item;
             const cleanPages = pages.map(p => {
-                const { thumbSrc, ...restPage } = p; 
+                const { thumbSrc, ...restPage } = p;
                 return restPage;
             });
             return { ...restItem, pages: cleanPages };
@@ -784,55 +802,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveState() {
         state.history.push(getSnapshot());
-        state.future = []; 
-        if (state.history.length > 50) state.history.shift(); 
+        state.future = [];
+        if (state.history.length > 50) state.history.shift();
         updateToolbarState();
     }
-    
+
     function applyState(itemsJson) {
         state.selected.clear();
         state.lastSelectedId = null;
         state.items = JSON.parse(itemsJson);
-        render(); 
+        render();
         updateToolbarState();
     }
 
-    window.undo = function() {
-       if (state.history.length <= 1) return;
+    window.undo = function () {
+        if (state.history.length <= 1) return;
         state.future.push(getSnapshot());
         const previousState = state.history.pop();
         applyState(previousState);
     }
 
-    window.redo = function() {
+    window.redo = function () {
         if (state.future.length === 0) return;
         state.history.push(getSnapshot());
         const nextState = state.future.pop();
         applyState(nextState);
     }
-    
+
     function updateToolbarState() {
-        document.getElementById('undo-btn').disabled = state.history.length <= 1; 
+        document.getElementById('undo-btn').disabled = state.history.length <= 1;
         document.getElementById('redo-btn').disabled = state.future.length === 0;
     }
 
     // --- FILE HANDLING ---
-    window.handleAddFiles = async function() {
-        saveState(); 
+    window.handleAddFiles = async function () {
+        saveState();
         const initialItemCount = state.items.length;
         let filesProcessed = false;
-        
+
         if (isElectron) {
             try {
-                 const paths = await ipcRenderer.invoke('select-files');
-                 if (paths && paths.length > 0) {
-                     await processFiles(paths, 'electron');
-                     filesProcessed = true;
-                 }
-             } catch(e) {
-                 console.error(e);
-                 showMessageModal("Error", e.message, true);
-             }
+                const paths = await ipcRenderer.invoke('select-files');
+                if (paths && paths.length > 0) {
+                    await processFiles(paths, 'electron');
+                    filesProcessed = true;
+                }
+            } catch (e) {
+                console.error(e);
+                showMessageModal("Error", e.message, true);
+            }
         } else {
             dom.fileInput.click();
         }
@@ -846,22 +864,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleBrowserFileSelect(e) {
         const files = Array.from(e.target.files);
-        if(files.length > 0) processFiles(files, 'browser').then(() => { e.target.value = ''; });
+        if (files.length > 0) processFiles(files, 'browser').then(() => { e.target.value = ''; });
     }
 
     async function processFiles(inputs, source) {
         if (inputs.length === 0) return;
-        
+
         const initialItemCount = state.items.length;
 
         for (const input of inputs) {
             let filePath, fileName, pageCount, type;
-            
+
             if (source === 'electron') {
                 try {
                     filePath = input;
                     fileName = filePath.split(/[/\\]/).pop();
-                    
+
                     let pdfDoc = pdfDocCache[filePath];
                     if (!pdfDoc) {
                         const loadingTask = pdfjsLib.getDocument(filePath);
@@ -879,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     type = 'img';
                 }
             } else {
-                filePath = URL.createObjectURL(input); 
+                filePath = URL.createObjectURL(input);
                 fileName = input.name;
                 type = input.type.includes('pdf') ? 'file' : 'img';
                 let pdfDoc = pdfDocCache[filePath];
@@ -897,24 +915,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const colorIdx = state.items.length % colors.length;
 
             const newPages = [];
-            for(let i=0; i<pageCount; i++) {
+            for (let i = 0; i < pageCount; i++) {
                 newPages.push({
                     id: fileId + '_p' + i,
-                    name: type === 'file' ? `Page ${i+1}` : 'Image',
+                    name: type === 'file' ? `Page ${i + 1}` : fileName,
                     type: type,
                     rot: 0,
                     originalFileId: fileId,
                     originalIndex: i,
                     path: filePath,
                     originalColor: colors[colorIdx],
-                    originalThumbBg: thumbBgs[colorIdx] 
+                    originalThumbBg: thumbBgs[colorIdx]
                 });
             }
-            
+
             if (newPages.length > 0) {
                 state.items.push({
                     id: fileId, type: type, name: fileName, path: filePath,
-                    expanded: true, isMultiPage: type === 'file', 
+                    expanded: true, isMultiPage: type === 'file',
                     color: colors[colorIdx], thumbBg: thumbBgs[colorIdx],
                     pages: newPages
                 });
@@ -932,10 +950,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EXPORT LOGIC ---
-    window.exportPdf = async function() {
-        if(state.items.length === 0) return;
+    window.exportPdf = async function () {
+        if (state.items.length === 0) return;
         const btn = document.getElementById('export-btn');
-        
+
         if (isElectron) {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             btn.disabled = true;
@@ -965,22 +983,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: document.getElementById('meta-title').value,
                     author: document.getElementById('meta-author').value
                 };
-                
-                const result = await ipcRenderer.invoke('merge-files', { 
-                    items: exportList, outputPath: savePath, metadata, resizeToFit: state.resizeToFit 
+
+                const result = await ipcRenderer.invoke('merge-files', {
+                    items: exportList, outputPath: savePath, metadata, resizeToFit: state.resizeToFit
                 });
 
                 if (result.success) {
                     if (result.failedFiles && result.failedFiles.length > 0) {
-                         const list = result.failedFiles.map(f => `• ${f}`).join('\n');
-                         showMessageModal('Completed with Issues', `Saved successfully, but the following files were skipped due to errors (e.g., encryption):\n${list}`, true);
+                        const list = result.failedFiles.map(f => `• ${f}`).join('\n');
+                        showMessageModal('Completed with Issues', `Saved successfully, but the following files were skipped due to errors (e.g., encryption):\n${list}`, true);
                     } else {
-                         showMessageModal('Success', 'File saved successfully.', false);
+                        showMessageModal('Success', 'File saved successfully.', false);
                     }
                 }
                 else showMessageModal('Error', result.error, true);
 
-            } catch(e) {
+            } catch (e) {
                 // The cancellation case is handled above, so any error here is a real processing error.
                 showMessageModal('Export Error', e.message, true);
             } finally {
@@ -993,27 +1011,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- UI ACTIONS ---
-    window.toggleSettings = function() { dom.settingsModal.classList.toggle('hidden'); dom.helpModal.classList.add('hidden'); }
-    window.toggleSettings = function() { 
-        dom.settingsModal.classList.toggle('hidden'); 
-        dom.helpModal.classList.add('hidden'); 
-        const am = document.getElementById('about-modal'); if(am) am.classList.add('hidden');
+    window.toggleSettings = function () { dom.settingsModal.classList.toggle('hidden'); dom.helpModal.classList.add('hidden'); }
+    window.toggleSettings = function () {
+        dom.settingsModal.classList.toggle('hidden');
+        dom.helpModal.classList.add('hidden');
+        const am = document.getElementById('about-modal'); if (am) am.classList.add('hidden');
     }
-    window.toggleHelp = function() { 
-        dom.helpModal.classList.toggle('hidden'); 
-        dom.settingsModal.classList.add('hidden'); 
-        const am = document.getElementById('about-modal'); if(am) am.classList.add('hidden');
+    window.toggleHelp = function () {
+        dom.helpModal.classList.toggle('hidden');
+        dom.settingsModal.classList.add('hidden');
+        const am = document.getElementById('about-modal'); if (am) am.classList.add('hidden');
     }
-    window.toggleAbout = function() {
+    window.toggleAbout = function () {
         const am = document.getElementById('about-modal');
-        if(am) {
+        if (am) {
             am.classList.toggle('hidden');
             dom.settingsModal.classList.add('hidden');
             dom.helpModal.classList.add('hidden');
         }
     }
 
-    window.toggleTheme = function() {
+    window.toggleTheme = function () {
         const isLight = document.body.classList.contains('theme-light');
         state.theme = isLight ? 'dark' : 'light';
         document.body.className = `theme-${state.theme}`;
@@ -1022,115 +1040,171 @@ document.addEventListener('DOMContentLoaded', () => {
         persistSettings();
     }
 
-    window.switchView = function(mode) {
+    window.switchView = function (mode) {
         state.view = mode;
-        state.expandedContainerId = null; 
+        state.expandedContainerId = null;
         persistSettings();
         render();
     }
 
-    window.toggleContainerExpansion = function(id, e) {
-        if(e) e.stopPropagation();
+    window.toggleContainerExpansion = function (id, e) {
+        if (e) e.stopPropagation();
         state.expandedContainerId = (state.expandedContainerId === id) ? null : id;
         render();
     }
-    window.toggleExpandList = function(idx) {
+    window.toggleExpandList = function (idx) {
         state.items[idx].expanded = !state.items[idx].expanded;
         render();
     }
 
-    window.rotatePage = function(pageId, e) {
-        if(e) e.stopPropagation();
-        saveState();
-        for(let item of state.items) {
-            for(let p of item.pages) {
-                if(p.id === pageId) {
-                    p.rot = (p.rot + 90) % 360;
-                    p.thumbSrc = null; 
-                    render(); return;
-                }
-            }
-        }
-    }
-    
-    window.duplicateItem = function(id, e) {
-        if(e) e.stopPropagation();
-        saveState();
-        // Duplicate File/Container
-        const itemIdx = state.items.findIndex(item => item.id === id);
-        if (itemIdx !== -1) {
-            const originalItem = state.items[itemIdx];
-            const newItemId = 'copy_f_' + Date.now() + Math.random().toString(36).substr(2, 5);
-            const newPages = originalItem.pages.map(p => ({
-                ...p, id: 'copy_p_' + Date.now() + Math.random().toString(36).substr(2, 5) + '_' + Math.random().toString(36).substr(2, 3),
-            }));
-            const newItem = { ...originalItem, id: newItemId, pages: newPages };
-            state.items.splice(itemIdx + 1, 0, newItem);
+    window.expandAllToggles = function () {
+        if (state.items) {
+            state.items.forEach(item => {
+                if (item.isMultiPage) item.expanded = true;
+            });
             render();
-            return;
         }
-        // Duplicate Page
-        for(let i=0; i<state.items.length; i++) {
-            const item = state.items[i];
-            const pageIdx = item.pages.findIndex(p => p.id === id);
-            if (pageIdx !== -1) {
-                if (!item.isMultiPage) {
-                    state.history.pop();
-                    duplicateItem(item.id, null); 
-                    return;
-                }
-                const originalPage = item.pages[pageIdx];
-                const newPage = { ...originalPage, id: 'copy_p_' + Date.now() + Math.random().toString(36).substr(2, 5) };
-                item.pages.splice(pageIdx + 1, 0, newPage);
-                render();
-                return;
-            }
-        }
+        document.getElementById('list-context-menu')?.classList.add('hidden');
     }
 
-    window.revertPage = function(pageId, e) {
-        if(e) e.stopPropagation();
+    window.collapseAllToggles = function () {
+        if (state.items) {
+            state.items.forEach(item => {
+                if (item.isMultiPage) item.expanded = false;
+            });
+            render();
+        }
+        document.getElementById('list-context-menu')?.classList.add('hidden');
+    }
+
+    window.rotatePage = function (pageId, e) {
+        if (e) e.stopPropagation();
         saveState();
-        let pageData = null;
-        
-        outer: for(let i=0; i<state.items.length; i++) {
-            if (state.items[i].pages.length === 1 && state.items[i].pages[0].id === pageId && !state.items[i].isMultiPage) {
-                pageData = state.items[i].pages[0];
-                state.items.splice(i, 1); 
-                break outer;
-            }
-            for(let j=0; j<state.items[i].pages.length; j++) {
-                 if (state.items[i].pages[j].id === pageId) {
-                     pageData = state.items[i].pages[j];
-                     state.items[i].pages.splice(j, 1);
-                     break outer;
-                 }
+        let targets = Array.from(state.selected);
+        if (!targets.includes(pageId)) targets.push(pageId);
+        let changed = false;
+        for (let item of state.items) {
+            for (let p of item.pages) {
+                if (targets.includes(p.id) || targets.includes(item.id)) {
+                    p.rot = (p.rot + 90) % 360;
+                    p.thumbSrc = null;
+                    changed = true;
+                }
             }
         }
-        if(!pageData) { state.history.pop(); updateToolbarState(); return; }
-
-        const original = state.items.find((it, idx) => it.id === pageData.originalFileId);
-        
-        if(original) {
-            let insertIndex = original.pages.findIndex(p => p.originalIndex > pageData.originalIndex);
-            if (insertIndex === -1) insertIndex = original.pages.length; 
-            pageData.rot = 0; pageData.thumbSrc = null;
-            original.pages.splice(insertIndex, 0, pageData);
-            original.expanded = true; original.isMultiPage = true;
-        } else {
-            const newLooseItem = {
-                id: 'restored_'+Date.now() + Math.random().toString(36).substr(2, 5), 
-                type: pageData.type, name: pageData.name,
-                expanded: true, isMultiPage: false,
-                color: pageData.originalColor, thumbBg: pageData.originalThumbBg,
-                pages: [pageData]
-            };
-            pageData.rot = 0; pageData.thumbSrc = null;
-            state.items.push(newLooseItem);
-        }
-        render();
+        if (changed) render();
     }
-    
+
+    window.duplicateItem = function (id, e) {
+        if (e) e.stopPropagation();
+        saveState();
+        let targets = Array.from(state.selected);
+        if (!targets.includes(id)) targets.push(id);
+        let changed = false;
+
+        for (let targetId of targets) {
+            const itemIdx = state.items.findIndex(item => item.id === targetId);
+            if (itemIdx !== -1) {
+                const originalItem = state.items[itemIdx];
+                const newItemId = 'copy_f_' + Date.now() + Math.random().toString(36).substr(2, 5);
+                const newPages = originalItem.pages.map(p => ({
+                    ...p, id: 'copy_p_' + Date.now() + Math.random().toString(36).substr(2, 5) + '_' + Math.random().toString(36).substr(2, 3),
+                    originalFileId: newItemId
+                }));
+                const newItem = { ...originalItem, id: newItemId, pages: newPages };
+                state.items.splice(itemIdx + 1, 0, newItem);
+                changed = true;
+                continue;
+            }
+
+            for (let i = 0; i < state.items.length; i++) {
+                const item = state.items[i];
+                const pageIdx = item.pages.findIndex(p => p.id === targetId);
+                if (pageIdx !== -1) {
+                    if (!item.isMultiPage) {
+                        const originalItem = item;
+                        const newItemId = 'copy_f_' + Date.now() + Math.random().toString(36).substr(2, 5);
+                        const newPages = originalItem.pages.map(p => ({
+                            ...p, id: 'copy_p_' + Date.now() + Math.random().toString(36).substr(2, 5) + '_' + Math.random().toString(36).substr(2, 3),
+                            originalFileId: newItemId
+                        }));
+                        const newItem = { ...originalItem, id: newItemId, pages: newPages };
+                        state.items.splice(i + 1, 0, newItem);
+                        changed = true;
+                    } else {
+                        const originalPage = item.pages[pageIdx];
+                        const newPage = { ...originalPage, id: 'copy_p_' + Date.now() + Math.random().toString(36).substr(2, 5) };
+                        item.pages.splice(pageIdx + 1, 0, newPage);
+                        changed = true;
+                    }
+                    break;
+                }
+            }
+        }
+        if (changed) render();
+        else { state.history.pop(); updateToolbarState(); }
+    }
+
+    window.revertPage = function (pageId, e) {
+        if (e) e.stopPropagation();
+        saveState();
+        let targets = Array.from(state.selected);
+        if (!targets.includes(pageId)) targets.push(pageId);
+        let changed = false;
+
+        for (let targetId of targets) {
+            let pageData = null;
+
+            outer: for (let i = state.items.length - 1; i >= 0; i--) {
+                if (state.items[i].pages.length === 1 && state.items[i].pages[0].id === targetId && !state.items[i].isMultiPage) {
+                    pageData = state.items[i].pages[0];
+                    state.items.splice(i, 1);
+                    break outer;
+                }
+                for (let j = state.items[i].pages.length - 1; j >= 0; j--) {
+                    if (state.items[i].pages[j].id === targetId) {
+                        pageData = state.items[i].pages[j];
+                        state.items[i].pages.splice(j, 1);
+                        break outer;
+                    }
+                }
+            }
+            if (!pageData) continue;
+
+            const original = state.items.find(it => it.id === pageData.originalFileId);
+
+            if (original) {
+                let insertIndex = original.pages.findIndex(p => p.originalIndex > pageData.originalIndex);
+                if (insertIndex === -1) insertIndex = original.pages.length;
+                pageData.rot = 0; pageData.thumbSrc = null;
+                original.pages.splice(insertIndex, 0, pageData);
+                original.expanded = true; original.isMultiPage = true;
+                changed = true;
+            } else {
+                const newLooseItem = {
+                    id: 'restored_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                    type: pageData.type, name: pageData.name,
+                    expanded: true, isMultiPage: false,
+                    color: pageData.originalColor, thumbBg: pageData.originalThumbBg,
+                    pages: [pageData]
+                };
+                pageData.rot = 0; pageData.thumbSrc = null;
+                state.items.push(newLooseItem);
+                changed = true;
+            }
+        }
+
+        // Cleanup empty multi-page containers
+        for (let i = state.items.length - 1; i >= 0; i--) {
+            if (state.items[i].isMultiPage && state.items[i].pages.length === 0) {
+                state.items.splice(i, 1);
+            }
+        }
+
+        if (changed) render();
+        else { state.history.pop(); updateToolbarState(); }
+    }
+
     function pruneCache() {
         const activePaths = new Set();
         state.items.forEach(item => {
@@ -1152,26 +1226,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.deleteSelected = function() {
-        if(state.selected.size === 0) return;
+    window.deleteSelected = function () {
+        if (state.selected.size === 0) return;
         saveState();
         const selectedIds = Array.from(state.selected);
         const toDelete = [];
         state.items.forEach((item, i) => {
-            if(selectedIds.includes(item.id)) { toDelete.push({ type: 'file', idx: i }); return; }
+            if (selectedIds.includes(item.id)) { toDelete.push({ type: 'file', idx: i }); return; }
             const pagesToDelete = [];
             item.pages.forEach((p, pIdx) => {
-                if(selectedIds.includes(p.id)) pagesToDelete.push(pIdx);
+                if (selectedIds.includes(p.id)) pagesToDelete.push(pIdx);
             });
-            if(pagesToDelete.length > 0) {
-                if(pagesToDelete.length === item.pages.length) toDelete.push({ type: 'file', idx: i });
+            if (pagesToDelete.length > 0) {
+                if (pagesToDelete.length === item.pages.length) toDelete.push({ type: 'file', idx: i });
                 else toDelete.push({ type: 'page', idx: i, pages: pagesToDelete });
             }
         });
-        toDelete.sort((a,b) => b.idx - a.idx);
+        toDelete.sort((a, b) => b.idx - a.idx);
         toDelete.forEach(task => {
-            if(task.type === 'file') state.items.splice(task.idx, 1);
-            else task.pages.sort((a,b) => b-a).forEach(pIdx => state.items[task.idx].pages.splice(pIdx, 1));
+            if (task.type === 'file') state.items.splice(task.idx, 1);
+            else task.pages.sort((a, b) => b - a).forEach(pIdx => state.items[task.idx].pages.splice(pIdx, 1));
         });
         state.selected.clear();
         state.lastSelectedId = null;
@@ -1185,17 +1259,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let viewerRenderTask = null;
     let viewerBaseDims = { w: 0, h: 0 };
 
-    window.openViewer = async function(pageId) {
+    window.openViewer = async function (pageId) {
         const pageObj = findPageObject(pageId);
         if (!pageObj) return;
 
         state.viewer.isOpen = true;
         state.viewer.pageId = pageId;
-        state.viewer.scale = 1.0; 
+        state.viewer.scale = 1.0;
         state.viewer.rotation = pageObj.rot || 0;
         state.viewer.tool = 'pan';
         updateViewerCursor();
-        
+
         // Find parent item to get context
         const parentItem = state.items.find(i => i.pages && i.pages.some(p => p.id === pageId));
         if (parentItem) state.viewer.itemId = parentItem.id;
@@ -1204,7 +1278,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.viewerModal.classList.add('bg-black/50');
         // Small delay to allow display:block to apply before opacity transition
         requestAnimationFrame(() => dom.viewerModal.classList.remove('opacity-0'));
-        
+
         // Reset content
         dom.viewerContent.innerHTML = '';
         dom.viewerContent.style.width = '100%';
@@ -1213,9 +1287,12 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.viewerViewport.scrollLeft = 0;
 
         await loadAndRenderViewer();
+        if (window.viewerFitPage) {
+            window.viewerFitPage();
+        }
     }
 
-    window.closeViewer = function() {
+    window.closeViewer = function () {
         state.viewer.isOpen = false;
         dom.viewerModal.classList.add('opacity-0');
         setTimeout(() => {
@@ -1228,26 +1305,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 200);
     }
 
-    window.viewerZoomIn = function() {
+    window.viewerZoomIn = function () {
         let newScale = state.viewer.scale * 1.25;
         if (newScale > 64.0) newScale = 64.0; // Max 6400%
         setViewerScale(newScale);
     }
 
-    window.viewerZoomOut = function() {
+    window.viewerZoomOut = function () {
         let newScale = state.viewer.scale / 1.25;
         if (newScale < 0.0008) newScale = 0.0008; // Min 0.08%
         setViewerScale(newScale);
     }
 
-    window.viewerFitToWidth = function() {
+    window.viewerFitToWidth = function () {
         if (!state.viewer.isOpen) return;
-        
-        const availableWidth = dom.viewerViewport.clientWidth - 48; 
+
+        const availableWidth = dom.viewerViewport.clientWidth - 48;
         let contentWidth = 0;
-        
+
         if (viewerPage) {
-            const rotation = (viewerPage.rotate + state.viewer.rotation) % 360;
+            const rotation = ((viewerPage.rotate || 0) + (state.viewer.rotation || 0)) % 360;
             const viewport = viewerPage.getViewport({ scale: 1.0, rotation: rotation });
             contentWidth = viewport.width;
         } else {
@@ -1255,21 +1332,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const isRotated = rotation % 180 !== 0;
             contentWidth = isRotated ? viewerBaseDims.h : viewerBaseDims.w;
         }
-        
+
         if (contentWidth > 0) setViewerScale(availableWidth / contentWidth);
     }
 
-    window.viewerFitPage = function() {
+    window.viewerFitPage = function () {
         if (!state.viewer.isOpen) return;
-        
-        const availableWidth = dom.viewerViewport.clientWidth - 48; 
+
+        const availableWidth = dom.viewerViewport.clientWidth - 48;
         const availableHeight = dom.viewerViewport.clientHeight - 48;
-        
+
         let contentWidth = 0;
         let contentHeight = 0;
-        
+
         if (viewerPage) {
-            const rotation = (viewerPage.rotate + state.viewer.rotation) % 360;
+            const rotation = ((viewerPage.rotate || 0) + (state.viewer.rotation || 0)) % 360;
             const viewport = viewerPage.getViewport({ scale: 1.0, rotation: rotation });
             contentWidth = viewport.width;
             contentHeight = viewport.height;
@@ -1279,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', () => {
             contentWidth = isRotated ? viewerBaseDims.h : viewerBaseDims.w;
             contentHeight = isRotated ? viewerBaseDims.w : viewerBaseDims.h;
         }
-        
+
         if (contentWidth > 0 && contentHeight > 0) {
             const scaleX = availableWidth / contentWidth;
             const scaleY = availableHeight / contentHeight;
@@ -1290,10 +1367,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function setViewerScale(s) {
         state.viewer.scale = s;
         dom.viewerScaleInput.value = Math.round(s * 100) + '%';
-        
+
         if (viewerPage) {
             // Calculate new dimensions immediately for smooth zooming
-            const rotation = (viewerPage.rotate + state.viewer.rotation) % 360;
+            const rotation = ((viewerPage.rotate || 0) + (state.viewer.rotation || 0)) % 360;
             const viewport = viewerPage.getViewport({ scale: s, rotation: rotation });
             dom.viewerContent.style.width = `${viewport.width}px`;
             dom.viewerContent.style.height = `${viewport.height}px`;
@@ -1323,16 +1400,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.viewerToggleMode = function() {
+    window.viewerToggleMode = function () {
         // Mode toggle removed as we are unifying the view logic
     }
     // Hide the mode button as it's no longer needed
-    if(dom.viewerModeBtn) dom.viewerModeBtn.style.display = 'none';
+    if (dom.viewerModeBtn) dom.viewerModeBtn.style.display = 'none';
 
     // Redesign Viewer Toolbar
     if (dom.viewerScaleInput && dom.viewerScaleInput.parentElement) {
         let toolbar = dom.viewerScaleInput.parentElement;
-        
+
         // Move toolbar to root of viewer modal to detach it from any existing header structure
         // This fixes the "toolbar above another bar" issue by allowing us to hide the old header
         if (toolbar.parentElement !== dom.viewerModal) {
@@ -1343,12 +1420,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Apply floating capsule styles
         toolbar.className = "absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-full z-50 transition-all hover:scale-105 text-[var(--text-main)]";
-        toolbar.innerHTML = ''; 
+        toolbar.innerHTML = '';
 
         // Page Counter
         dom.viewerCounter.className = "text-xs font-medium whitespace-nowrap text-[var(--text-sub)]";
         toolbar.appendChild(dom.viewerCounter);
-        
+
         // Divider
         const div = document.createElement('div');
         div.className = "w-px h-4 bg-[var(--border)] mx-1";
@@ -1367,25 +1444,25 @@ document.addEventListener('DOMContentLoaded', () => {
             updateViewerCursor();
         };
         toolbar.appendChild(btnRegion);
-        
+
         // Controls
         const btnClass = "w-8 h-8 rounded-full hover:bg-[var(--hover-bg)] flex items-center justify-center transition-colors text-[var(--text-sub)]";
-        
+
         const btnZoomOut = document.createElement('button');
         btnZoomOut.className = btnClass;
         btnZoomOut.innerHTML = '<i class="fas fa-minus"></i>';
         btnZoomOut.onclick = window.viewerZoomOut;
         toolbar.appendChild(btnZoomOut);
-        
+
         dom.viewerScaleInput.className = "w-12 text-center bg-transparent text-sm font-mono focus:outline-none border-b border-transparent focus:border-[var(--ring-color)]";
         toolbar.appendChild(dom.viewerScaleInput);
-        
+
         const btnZoomIn = document.createElement('button');
         btnZoomIn.className = btnClass;
         btnZoomIn.innerHTML = '<i class="fas fa-plus"></i>';
         btnZoomIn.onclick = window.viewerZoomIn;
         toolbar.appendChild(btnZoomIn);
-        
+
         const btnFitWidth = document.createElement('button');
         btnFitWidth.className = btnClass;
         btnFitWidth.innerHTML = '<i class="fas fa-arrows-alt-h"></i>';
@@ -1399,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnFitPage.onclick = window.viewerFitPage;
         btnFitPage.title = "Fit Page (F)";
         toolbar.appendChild(btnFitPage);
-        
+
         const btnClose = document.createElement('button');
         btnClose.className = "w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm ml-2";
         btnClose.innerHTML = '<i class="fas fa-times"></i>';
@@ -1407,24 +1484,27 @@ document.addEventListener('DOMContentLoaded', () => {
         toolbar.appendChild(btnClose);
     }
 
-    window.viewerPrevPage = function() { navigateViewer(-1); }
-    window.viewerNextPage = function() { navigateViewer(1); }
+    window.viewerPrevPage = function () { navigateViewer(-1); }
+    window.viewerNextPage = function () { navigateViewer(1); }
 
-    function navigateViewer(dir) {
+    async function navigateViewer(dir) {
         // Flatten all pages into a single list for navigation
         const allPages = [];
         state.items.forEach(item => {
             if (item.pages) allPages.push(...item.pages);
         });
-        
+
         const currentIdx = allPages.findIndex(p => p.id === state.viewer.pageId);
         if (currentIdx === -1) return;
-        
+
         const newIdx = currentIdx + dir;
         if (newIdx >= 0 && newIdx < allPages.length) {
             state.viewer.pageId = allPages[newIdx].id;
             state.viewer.rotation = allPages[newIdx].rot;
-            loadAndRenderViewer();
+            await loadAndRenderViewer();
+            if (window.viewerFitPage) {
+                window.viewerFitPage();
+            }
         }
     }
 
@@ -1433,7 +1513,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!pageObj) return;
 
         // dom.viewerFilename.innerText = pageObj.name;
-        
+
         let globalIdx = 0, totalPages = 0;
         for (const item of state.items) {
             for (const p of item.pages) {
@@ -1450,7 +1530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const isPdf = pageObj.type === 'file' || (pageObj.path && pageObj.path.toLowerCase().endsWith('.pdf'));
-            
+
             if (isPdf) {
                 if (!pdfDocCache[pageObj.path]) {
                     const loadingTask = pdfjsLib.getDocument(pageObj.path);
@@ -1458,11 +1538,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 viewerPdfDoc = pdfDocCache[pageObj.path];
                 viewerPage = await viewerPdfDoc.getPage(pageObj.originalIndex + 1);
-                
+
                 // Set base dims
                 const viewport = viewerPage.getViewport({ scale: 1.0 });
                 viewerBaseDims = { w: viewport.width, h: viewport.height };
-                
+
                 renderViewerCanvas();
             } else {
                 // Image
@@ -1482,24 +1562,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderViewerCanvas() {
         if (!viewerPage) return;
-        
+
         if (viewerRenderTask) {
             viewerRenderTask.cancel();
             viewerRenderTask = null;
         }
 
-        const rotation = (viewerPage.rotate + state.viewer.rotation) % 360;
-        
+        const rotation = ((viewerPage.rotate || 0) + (state.viewer.rotation || 0)) % 360;
+
         // Calculate max safe scale to prevent canvas crash (approx 16k limit)
         const MAX_CANVAS_DIM = 16384;
         const unscaledViewport = viewerPage.getViewport({ scale: 1.0, rotation: rotation });
         const maxScale = Math.min(MAX_CANVAS_DIM / unscaledViewport.width, MAX_CANVAS_DIM / unscaledViewport.height);
-        
+
         // Use the smaller of requested scale or max safe scale for rendering
         const renderScale = Math.min(state.viewer.scale, maxScale);
         const renderViewport = viewerPage.getViewport({ scale: renderScale, rotation: rotation });
         const cssViewport = viewerPage.getViewport({ scale: state.viewer.scale, rotation: rotation });
-        
+
         dom.viewerContent.style.width = `${cssViewport.width}px`;
         dom.viewerContent.style.height = `${cssViewport.height}px`;
         dom.viewerContent.style.maxWidth = 'none';
@@ -1524,18 +1604,18 @@ document.addEventListener('DOMContentLoaded', () => {
             canvasContext: canvas.getContext('2d'),
             viewport: renderViewport
         };
-        
+
         viewerRenderTask = viewerPage.render(renderContext);
         viewerRenderTask.promise.then(() => {
             dom.viewerLoading.classList.add('hidden');
             viewerRenderTask = null;
-            
+
             // Append new canvas and remove old content (old canvases or images)
             dom.viewerContent.appendChild(canvas);
             Array.from(dom.viewerContent.children).forEach(child => {
                 if (child !== canvas) child.remove();
             });
-        }).catch(() => {});
+        }).catch(() => { });
     }
 
     function renderViewerImage(img) {
@@ -1543,16 +1623,16 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.viewerContent.innerHTML = '';
             dom.viewerContent.appendChild(img);
         }
-        
+
         const rotation = state.viewer.rotation || 0;
         const isRotated = rotation % 180 !== 0;
-        
+
         const imgW = viewerBaseDims.w * state.viewer.scale;
         const imgH = viewerBaseDims.h * state.viewer.scale;
-        
+
         const containerW = isRotated ? imgH : imgW;
         const containerH = isRotated ? imgW : imgH;
-        
+
         dom.viewerContent.style.width = `${containerW}px`;
         dom.viewerContent.style.height = `${containerH}px`;
         dom.viewerContent.style.maxWidth = 'none';
@@ -1571,17 +1651,17 @@ document.addEventListener('DOMContentLoaded', () => {
         img.style.maxWidth = 'none';
         img.style.maxHeight = 'none';
         img.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-        
+
         dom.viewerLoading.classList.add('hidden');
     }
 
     // --- VIEWER INTERACTION (Zoom & Pan) ---
-    
+
     // Viewer Panning (Drag and Drop style)
     dom.viewerViewport.addEventListener('mousedown', (e) => {
         if (!state.viewer.isOpen) return;
         e.preventDefault();
-        
+
         if (state.viewer.tool === 'pan') {
             state.viewer.isDragging = true;
             state.viewer.startX = e.clientX;
@@ -1645,7 +1725,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // New scroll position
                 const newScrollLeft = (contentX * factor) - (rect.width / 2);
                 const newScrollTop = (contentY * factor) - (rect.height / 2);
-                
+
                 dom.viewerViewport.scrollLeft = newScrollLeft;
                 dom.viewerViewport.scrollTop = newScrollTop;
             }
@@ -1655,7 +1735,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.viewer.tool = 'pan';
             updateViewerCursor();
             const btn = document.getElementById('btn-viewer-region');
-            if(btn) { btn.classList.remove('bg-[var(--ring-color)]', 'text-white'); }
+            if (btn) { btn.classList.remove('bg-[var(--ring-color)]', 'text-white'); }
         }
     });
 
@@ -1671,16 +1751,16 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             state.viewer.selection.currentX = e.clientX;
             state.viewer.selection.currentY = e.clientY;
-            
+
             const rect = dom.viewerViewport.getBoundingClientRect();
             const scrollLeft = dom.viewerViewport.scrollLeft;
             const scrollTop = dom.viewerViewport.scrollTop;
-            
+
             const x1 = Math.min(state.viewer.selection.startX, e.clientX);
             const x2 = Math.max(state.viewer.selection.startX, e.clientX);
             const y1 = Math.min(state.viewer.selection.startY, e.clientY);
             const y2 = Math.max(state.viewer.selection.startY, e.clientY);
-            
+
             selectionBox.style.left = (x1 - rect.left + scrollLeft) + 'px';
             selectionBox.style.top = (y1 - rect.top + scrollTop) + 'px';
             selectionBox.style.width = (x2 - x1) + 'px';
@@ -1689,17 +1769,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- MODAL FUNCTIONS ---
-    window.resetApp = function() { 
-        dom.resetModal.classList.remove('hidden'); 
+    window.resetApp = function () {
+        dom.resetModal.classList.remove('hidden');
         const btn = dom.resetModal.querySelector('button');
-        if(btn) btn.focus();
+        if (btn) btn.focus();
     }
-    window.closeResetModal = function() { dom.resetModal.classList.add('hidden'); }
-    window.confirmResetApp = function() {
+    window.closeResetModal = function () { dom.resetModal.classList.add('hidden'); }
+    window.confirmResetApp = function () {
         state.items = []; state.selected.clear(); state.lastSelectedId = null; state.history = []; state.future = [];
-        state.history.push("[]\n"); 
+        state.history.push("[]\n");
         pdfDocCache = {}; // Clear memory cache
-        render(); 
+        render();
         closeResetModal();
         updateToolbarState();
     }
@@ -1708,27 +1788,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const icon = document.getElementById('msg-icon');
         document.getElementById('msg-title').innerText = title;
         document.getElementById('msg-desc').innerText = desc;
-        
+
         if (isError === 'info') {
             iconBg.className = "w-12 h-12 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center flex-shrink-0";
             icon.className = "fas fa-info text-xl";
-        } else if (isError) { 
-            iconBg.className = "w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center flex-shrink-0"; icon.className = "fas fa-times text-xl"; 
-        } else { 
-            iconBg.className = "w-12 h-12 rounded-full bg-green-100 text-green-500 flex items-center justify-center flex-shrink-0"; icon.className = "fas fa-check text-xl"; 
+        } else if (isError) {
+            iconBg.className = "w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center flex-shrink-0"; icon.className = "fas fa-times text-xl";
+        } else {
+            iconBg.className = "w-12 h-12 rounded-full bg-green-100 text-green-500 flex items-center justify-center flex-shrink-0"; icon.className = "fas fa-check text-xl";
         }
         dom.messageModal.classList.remove('hidden');
         const btn = dom.messageModal.querySelector('button');
-        if(btn) btn.focus();
+        if (btn) btn.focus();
     }
-    window.closeMessageModal = function() { dom.messageModal.classList.add('hidden'); }
+    window.closeMessageModal = function () { dom.messageModal.classList.add('hidden'); }
 
     // --- RENDERERS & LOGIC ---
     function sanitizeItems() {
         if (!state.items) state.items = [];
         state.items = state.items.filter(item => !!item);
         state.items.forEach(item => { if (item.pages) item.pages = item.pages.filter(p => !!p); });
-        
+
         // CLEANUP LOGIC:
         // 1. Remove "loose" single-page wrappers if empty (created during drag or delete)
         // 2. KEEP "file" containers (isMultiPage=true) even if empty, for "Revert" functionality.
@@ -1745,8 +1825,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function render() {
         sanitizeItems(); // Auto-cleanup before render
-        
-       // View Toggling
+
+        // View Toggling
         if (state.items.length === 0) {
             dom.startView.classList.remove('hidden');
             dom.gridView.classList.add('hidden');
@@ -1756,19 +1836,19 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.gridView.classList.toggle('hidden', state.view !== 'grid');
             dom.listView.classList.toggle('hidden', state.view !== 'list');
         }
-        
+
         // Button States
         const baseClass = "w-7 h-7 rounded text-xs transition-all flex items-center justify-center";
         const activeClass = "bg-white dark:bg-gray-600 shadow-sm text-[var(--text-main)]";
         const inactiveClass = "text-[var(--text-sub)] hover:text-[var(--text-main)] bg-transparent";
-        document.getElementById('btn-grid').className = `${baseClass} ${state.view==='grid'?activeClass:inactiveClass}`;
-        document.getElementById('btn-list').className = `${baseClass} ${state.view==='list'?activeClass:inactiveClass}`;
+        document.getElementById('btn-grid').className = `${baseClass} ${state.view === 'grid' ? activeClass : inactiveClass}`;
+        document.getElementById('btn-list').className = `${baseClass} ${state.view === 'list' ? activeClass : inactiveClass}`;
 
         if (state.view === 'grid') renderGrid(); else renderList();
         updateSelectionVisuals();
-        renderPdfThumbnails(); 
+        renderPdfThumbnails();
     }
-    
+
     async function renderPdfThumbnails() {
         const canvasesToProcess = Array.from(document.querySelectorAll('canvas.pdf-thumb-pending'));
         if (canvasesToProcess.length === 0) return;
@@ -1797,19 +1877,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const viewport = page.getViewport({ scale: 1 });
                     const MAX_DIMENSION = 1500;
                     const scale = Math.min(MAX_DIMENSION / viewport.width, MAX_DIMENSION / viewport.height, 3);
-                    const rot = findPageObject(pageId)?.rot || 0;
-                    const rotatedViewport = page.getViewport({ scale: scale, rotation: rot });
+                    const pageObjRot = findPageObject(pageId)?.rot || 0;
+                    const totalRot = (page.rotate + pageObjRot) % 360;
+                    const rotatedViewport = page.getViewport({ scale: scale, rotation: totalRot });
                     canvas.width = rotatedViewport.width; canvas.height = rotatedViewport.height;
                     const context = canvas.getContext('2d');
                     context.fillStyle = '#FFFFFF'; context.fillRect(0, 0, canvas.width, canvas.height);
-                    
+
                     // FIX: Add a timeout to prevent a single bad page from hanging the entire render queue.
                     const renderPromise = page.render({
-                        canvasContext: context, 
+                        canvasContext: context,
                         viewport: rotatedViewport,
                         renderInteractiveForms: true // Enable rendering of annotations and forms
                     }).promise;
-                    const timeoutPromise = new Promise((_, reject) => 
+                    const timeoutPromise = new Promise((_, reject) =>
                         setTimeout(() => reject(new Error('Render timed out after 10 seconds')), 10000)
                     );
                     await Promise.race([renderPromise, timeoutPromise]);
@@ -1829,13 +1910,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function findPageObject(id) {
-        for(const item of state.items) {
-            if(item.id === id) return item; 
-            for(const page of item.pages) if(page.id === id) return page;
+        for (const item of state.items) {
+            if (item.id === id) return item;
+            for (const page of item.pages) if (page.id === id) return page;
         }
         return null;
     }
-    
+
     // --- FIXED SELECTION LOGIC ---
     function getVisibleItems() {
         const visible = [];
@@ -1854,34 +1935,34 @@ document.addEventListener('DOMContentLoaded', () => {
         return visible;
     }
 
-    function handleItemClick(e, id) { 
+    function handleItemClick(e, id) {
         // Standardize ID if clicking container vs page
-        if (e.shiftKey && state.lastSelectedId) { 
+        if (e.shiftKey && state.lastSelectedId) {
             const visible = getVisibleItems();
-            const startIdx = visible.indexOf(state.lastSelectedId); 
-            const endIdx = visible.indexOf(id); 
-            
-            if (startIdx !== -1 && endIdx !== -1) { 
-                const min = Math.min(startIdx, endIdx); 
-                const max = Math.max(startIdx, endIdx); 
-                if (!e.ctrlKey) state.selected.clear(); 
-                for(let i=min; i<=max; i++) { 
-                    state.selected.add(visible[i]); 
-                } 
-            } 
-        } else if (e.ctrlKey || e.metaKey) { 
-            if(state.selected.has(id)) { 
-                state.selected.delete(id); 
-                state.lastSelectedId = null; 
-            } else { 
-                state.selected.add(id); 
-                state.lastSelectedId = id; 
-            } 
-        } else { 
-            state.selected.clear(); 
-            state.selected.add(id); 
-            state.lastSelectedId = id; 
-        } 
+            const startIdx = visible.indexOf(state.lastSelectedId);
+            const endIdx = visible.indexOf(id);
+
+            if (startIdx !== -1 && endIdx !== -1) {
+                const min = Math.min(startIdx, endIdx);
+                const max = Math.max(startIdx, endIdx);
+                if (!e.ctrlKey) state.selected.clear();
+                for (let i = min; i <= max; i++) {
+                    state.selected.add(visible[i]);
+                }
+            }
+        } else if (e.ctrlKey || e.metaKey) {
+            if (state.selected.has(id)) {
+                state.selected.delete(id);
+                state.lastSelectedId = null;
+            } else {
+                state.selected.add(id);
+                state.lastSelectedId = id;
+            }
+        } else {
+            state.selected.clear();
+            state.selected.add(id);
+            state.lastSelectedId = id;
+        }
 
         // Auto-collapse logic: if clicking something outside the expanded container
         if (state.expandedContainerId && !state.keepExpanded) {
@@ -1896,11 +1977,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.expandedContainerId = null;
                 render();
                 // Return early since render() will rebuild the grid/list and visuals
-                return; 
+                return;
             }
         }
 
-        updateSelectionVisuals(); 
+        updateSelectionVisuals();
     }
 
     function renderGrid() {
@@ -1913,25 +1994,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const isCompressed = isAnyExpanded && !isExpanded;
 
             const el = document.createElement('div');
-            
+
             if (item.isMultiPage) {
                 const spanVal = Math.min(state.gridCols, 3);
                 let size = isExpanded ? `col-span-${spanVal} row-span-2` : "col-span-1";
                 let visuals = isExpanded ? "ring-2 ring-[var(--ring-color)] shadow-xl scale-[1.01] z-10" : "hover:border-gray-300";
-                if(isCompressed) visuals = "compressed-state border-transparent";
+                if (isCompressed) visuals = "compressed-state border-transparent";
                 let heightClass = isExpanded ? "h-auto" : "aspect-[3/4] w-full flex flex-col";
-                
+
                 el.className = `selectable-item flex flex-col bg-[var(--bg-container)] border border-[var(--border)] rounded-xl overflow-hidden shadow-md ${size} ${visuals} relative grid-item-transition ${heightClass}`;
                 el.dataset.id = item.id;
                 el.dataset.type = 'container';
                 el.dataset.idx = parentIdx;
                 el.draggable = !isExpanded;
-                
+
                 el.onclick = (e) => { e.stopPropagation(); handleItemClick(e, item.id); };
                 el.ondblclick = (e) => toggleContainerExpansion(item.id, e);
-                
+
                 const icon = item.type === 'img' ? 'fa-image' : 'fa-file-pdf';
-                
+
                 el.innerHTML = `
                     <div class="flex items-center px-4 py-3 bg-[var(--bg-secondary)] border-b border-[var(--border)] gap-3 select-none">
                         <div class="w-8 h-8 rounded flex items-center justify-center ${item.thumbBg} text-[var(--text-sub)] item-icon">
@@ -1950,14 +2031,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="w-1.5 h-8 rounded-full ${item.color}"></div>
                     </div>
                 `;
-                
+
                 const body = document.createElement('div');
                 // Use min-height and flex-grow to better fill the expanded space
-                const height = isExpanded ? "min-h-[500px] flex-1" : "flex-1"; 
+                const height = isExpanded ? "min-h-[500px] flex-1" : "flex-1";
                 body.className = `p-3 grid gap-2 ${height} overflow-y-auto content-start transition-all grid-container-body flex-grow`;
                 // Dynamic grid columns: fits as many 100px cards as possible, preventing them from becoming too small
                 body.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
-                
+
                 item.pages.forEach((page, pIdx) => {
                     body.appendChild(createPageCard(page, item, parentIdx, pIdx, false));
                 });
@@ -1969,7 +2050,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (item.pages.length > 0) {
                     dom.gridView.appendChild(createPageCard(item.pages[0], item, parentIdx, 0, true, isCompressed));
                 }
-                return; 
+                return;
             }
             dom.gridView.appendChild(el);
         });
@@ -1980,8 +2061,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.createElement('div');
         const base = "selectable-item relative group flex flex-col gap-2 cursor-grab active:cursor-grabbing select-none bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg hover:shadow-md transition-all";
         // FIX: Apply aspect ratio to the top-level card itself, and ensure padding is part of it.
-       // The inner thumbnail will be flex-1 to fill the remaining space.
-        const size = isTopLevel ? "p-3 col-span-1 aspect-[3/4]" : "p-2"; 
+        // The inner thumbnail will be flex-1 to fill the remaining space.
+        const size = isTopLevel ? "p-3 col-span-1 aspect-[3/4]" : "p-2";
         const stateClass = isCompressed ? "compressed-state" : "";
         el.className = `${base} ${size} ${stateClass}`;
         el.draggable = true;
@@ -1989,7 +2070,7 @@ document.addEventListener('DOMContentLoaded', () => {
         el.dataset.parentIdx = parentIdx;
         el.dataset.pageIdx = pageIdx;
         el.dataset.id = page.id;
-        
+
         let revertBtn = '';
         if (page.type !== 'img' && page.originalFileId && page.originalFileId !== parent.id) {
             revertBtn = `<button onclick="revertPage('${page.id}', event)" title="Revert to Original File" class="w-6 h-6 rounded-full hover:bg-[var(--hover-bg)] text-[var(--text-sub)] flex items-center justify-center"><i class="fas fa-reply text-xs"></i></button>`;
@@ -2003,12 +2084,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (page.type === 'img') {
             thumbContent = `<div class="w-full h-full flex items-center justify-center bg-gray-100"><img src="${page.path}" alt="Image File" class="w-full h-full object-contain" style="transform: rotate(${page.rot}deg)"></div>`;
         } else if (isPDF) {
-             thumbContent = `<div class="w-full h-full flex items-center justify-center bg-white"><canvas class="pdf-thumb-pending w-full h-full object-contain" data-url="${page.path}" data-page-index="${page.originalIndex}" data-id="${page.id}"></canvas></div>`;
+            thumbContent = `<div class="w-full h-full flex items-center justify-center bg-white"><canvas class="pdf-thumb-pending w-full h-full object-contain" data-url="${page.path}" data-page-index="${page.originalIndex}" data-id="${page.id}"></canvas></div>`;
         } else {
             const icon = page.type === 'img' ? 'fa-image' : 'fa-file-pdf';
-            thumbContent = `<div class="transition-transform duration-300"><i class="fas ${icon} ${isTopLevel?'text-4xl':'text-2xl'} opacity-40 text-gray-500"></i></div>`;
+            thumbContent = `<div class="transition-transform duration-300"><i class="fas ${icon} ${isTopLevel ? 'text-4xl' : 'text-2xl'} opacity-40 text-gray-500"></i></div>`;
         }
-        
+
         el.innerHTML = `
             <!-- The thumbnail container is now flex-1 to fill space left by the footer -->
             <div class="flex-1 w-full ${page.originalThumbBg || 'bg-gray-100'} rounded-md flex items-center justify-center overflow-hidden relative min-h-0">
@@ -2039,35 +2120,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = document.createElement('div');
             el.className = "flex flex-col bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg overflow-hidden list-row shadow-sm";
             const header = document.createElement('div');
-            
+
             // Unified ID Logic for selection: Single page wrapper -> Page ID. Folder -> Item ID.
             let headerId = (!item.isMultiPage && item.pages.length === 1) ? item.pages[0].id : item.id;
-            
+
             header.className = "selectable-item flex items-center p-3 gap-3 cursor-grab hover:bg-black/5 dark:hover:bg-white/5 list-parent-header transition-colors";
             header.draggable = true;
             header.dataset.type = item.isMultiPage ? 'list-parent' : 'card-toplevel';
-            header.dataset.idx = idx; 
+            header.dataset.idx = idx;
             header.dataset.id = headerId;
-            
+
             if (!item.isMultiPage && item.pages.length === 1) { header.dataset.parentIdx = idx; header.dataset.pageIdx = 0; }
 
-            const chevron = (item.isMultiPage) 
-                ? `<button onclick="toggleExpandList(${idx})" class="w-6 h-6 text-[var(--text-sub)] transition-transform ${item.expanded?'rotate-90':''} flex-shrink-0"><i class="fas fa-chevron-right text-xs"></i></button>` 
+            const chevron = (item.isMultiPage)
+                ? `<button onclick="toggleExpandList(${idx})" class="w-6 h-6 text-[var(--text-sub)] transition-transform ${item.expanded ? 'rotate-90' : ''} flex-shrink-0"><i class="fas fa-chevron-right text-xs"></i></button>`
                 : `<div class="w-6 flex-shrink-0"></div>`;
 
             let revertBtn = '', rotateBtn = '', duplicateBtn = '', rotText = '', colorDot = `<div class="w-2 h-8 rounded-l ${item.color} flex-shrink-0"></div>`;
 
             if (!item.isMultiPage && item.pages.length === 1) {
                 const page = item.pages[0];
-                if (page && page.type === 'img') colorDot = '<div class="w-2 h-8 flex-shrink-0"></div>'; 
+                if (page && page.type === 'img') colorDot = '<div class="w-2 h-8 flex-shrink-0"></div>';
                 else if (page && page.originalFileId && page.originalFileId !== item.id) { revertBtn = `<button onclick="revertPage('${page.id}', event)" title="Revert" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-reply text-xs"></i></button>`; }
-                if (page) { rotText = `<span class="text-[10px] text-[var(--text-sub)] font-mono ml-1 w-6 text-center">${page.rot}°</span>`; rotateBtn = `<button onclick="rotatePage('${page.id}', event)" title="Rotate 90°" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-redo-alt text-xs"></i></button>`; duplicateBtn = `<button onclick="duplicateItem('${page.id}', event)" title="Duplicate" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-clone text-xs"></i></button>`; } 
+                if (page) { rotText = `<span class="text-[10px] text-[var(--text-sub)] font-mono ml-1 w-6 text-center">${page.rot}°</span>`; rotateBtn = `<button onclick="rotatePage('${page.id}', event)" title="Rotate 90°" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-redo-alt text-xs"></i></button>`; duplicateBtn = `<button onclick="duplicateItem('${page.id}', event)" title="Duplicate" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-clone text-xs"></i></button>`; }
             } else if (item.isMultiPage) {
                 duplicateBtn = `<button onclick="duplicateItem('${item.id}', event)" title="Duplicate PDF" class="w-8 h-8 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-clone text-xs"></i></button>`;
             }
 
             if (!revertBtn) revertBtn = '<div class="w-8 h-8"></div>';
-            if (!rotText) rotText = '<div class="w-6 ml-1"></div>'; 
+            if (!rotText) rotText = '<div class="w-6 ml-1"></div>';
             if (!rotateBtn) rotateBtn = '<div class="w-8 h-8"></div>';
 
             let thumbContent;
@@ -2075,17 +2156,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 thumbContent = `<div class="w-8 h-8 rounded flex items-center justify-center bg-gray-100 overflow-hidden border border-[var(--border)] flex-shrink-0"><img src="${item.pages[0].thumbSrc}" alt="Page Thumbnail" class="w-full h-full object-contain" style="transform: none"></div>`;
             }
             else if (!item.isMultiPage && item.pages[0]?.type === 'img') {
-                 thumbContent = `<div class="w-8 h-8 rounded flex items-center justify-center bg-gray-100 overflow-hidden border border-[var(--border)] flex-shrink-0"><img src="${item.pages[0].path}" alt="Image File" class="w-full h-full object-contain" style="transform: rotate(${item.pages[0].rot}deg)"></div>`;
+                thumbContent = `<div class="w-8 h-8 rounded flex items-center justify-center bg-gray-100 overflow-hidden border border-[var(--border)] flex-shrink-0"><img src="${item.pages[0].path}" alt="Image File" class="w-full h-full object-contain" style="transform: rotate(${item.pages[0].rot}deg)"></div>`;
             }
             else {
                 const icon = item.type === 'img' ? 'fa-image' : 'fa-file-pdf';
                 thumbContent = `<div class="w-8 h-8 rounded flex items-center justify-center ${item.thumbBg} text-[var(--text-sub)] flex-shrink-0"><i class="fas ${icon}"></i></div>`;
             }
-            
+
             const actionsContainer = `
                 <div class="flex items-center justify-end gap-1 flex-shrink-0" style="min-width: 200px;" ondblclick="event.stopPropagation()">
                     ${revertBtn} ${duplicateBtn} ${rotText} ${rotateBtn}
-                    <div class="text-xs text-[var(--text-sub)] w-12 text-right">${item.isMultiPage ? item.pages.length+' pgs' : ''}</div>
+                    <div class="text-xs text-[var(--text-sub)] w-12 text-right">${item.isMultiPage ? item.pages.length + ' pgs' : ''}</div>
                     ${colorDot}
                 </div>
             `;
@@ -2109,13 +2190,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     row.draggable = true;
                     row.dataset.type = 'list-child'; row.dataset.parentIdx = idx; row.dataset.pageIdx = pIdx;
                     row.dataset.id = page.id;
-                    
+
                     let childRevert = '';
                     if (page.originalFileId && page.originalFileId !== item.id) {
-                         childRevert = `<button onclick="revertPage('${page.id}', event)" title="Revert" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-reply text-xs"></i></button>`;
+                        childRevert = `<button onclick="revertPage('${page.id}', event)" title="Revert" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-reply text-xs"></i></button>`;
                     }
                     const childRotText = `<span class="text-[10px] text-[var(--text-sub)] font-mono ml-1">${page.rot}°</span>`;
-                    row.innerHTML = `<div class="w-2 h-2 rounded-full ${page.originalColor||item.color}"></div><span class="text-sm text-[var(--text-sub)] flex-1 truncate">${page.name}</span><div class="flex items-center gap-2" ondblclick="event.stopPropagation()">${childRevert}<button onclick="duplicateItem('${page.id}', event)" title="Duplicate" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-clone text-xs"></i></button>${childRotText}<button onclick="rotatePage('${page.id}', event)" title="Rotate 90°" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-redo-alt text-xs"></i></button></div>`;
+                    row.innerHTML = `<div class="w-2 h-2 rounded-full ${page.originalColor || item.color}"></div><span class="text-sm text-[var(--text-sub)] flex-1 truncate">${page.name}</span><div class="flex items-center gap-2" ondblclick="event.stopPropagation()">${childRevert}<button onclick="duplicateItem('${page.id}', event)" title="Duplicate" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-clone text-xs"></i></button>${childRotText}<button onclick="rotatePage('${page.id}', event)" title="Rotate 90°" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-redo-alt text-xs"></i></button></div>`;
                     row.onclick = (e) => { e.stopPropagation(); handleItemClick(e, page.id); };
                     // Add double click to open viewer
                     row.ondblclick = (e) => { e.stopPropagation(); openViewer(page.id); };
@@ -2146,22 +2227,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         activeDrag = { type: 'internal' }; // Set the global drag state.
         dragSource = { type: this.dataset.type, parentIdx: parseInt(this.dataset.parentIdx ?? this.dataset.idx), pageIdx: this.dataset.pageIdx !== undefined ? parseInt(this.dataset.pageIdx) : null, selectedIds: Array.from(state.selected) };
-        
+
         // FIX: Set a custom data transfer type to reliably identify internal drags.
         e.dataTransfer.setData('application/x-combine-plus-internal', 'true');
 
         this.classList.add('dragging');
     }
-    
+
     // FIX: Aggressively clean up visual artifacts in handleDragEnd
-    function handleDragEnd(e) { 
+    function handleDragEnd(e) {
         activeDrag = null; // Reset the global drag state.
         // FIX: Always reset dragSource on drag end to prevent conflicts with external file drops.
-        dragSource = null; 
-        dropTarget = null; 
-        this.classList.remove('dragging'); 
-        resetMarkers(); 
-        document.querySelectorAll('.drop-target-bg').forEach(el => el.classList.remove('drop-target-bg')); 
+        dragSource = null;
+        dropTarget = null;
+        this.classList.remove('dragging');
+        resetMarkers();
+        document.querySelectorAll('.drop-target-bg').forEach(el => el.classList.remove('drop-target-bg'));
         dom.mainScroll.classList.remove('border-dashed', 'border-4', 'border-[var(--ring-color)]', 'border-opacity-50');
     }
 
@@ -2286,7 +2367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
-        
+
         // Check if dragging below the last item in an expanded container.
         const listBounds = dom.listView.getBoundingClientRect();
         if (row && state.items[idx].isMultiPage && state.items[idx].expanded) {
@@ -2309,27 +2390,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
     }
-    
-    function handleItemReorderDrop(e) { 
-        e.preventDefault(); e.stopPropagation(); 
-        
+
+    function handleItemReorderDrop(e) {
+        e.preventDefault(); e.stopPropagation();
+
         // FIX: Aggressively clean up visual artifacts at start of Drop
         resetMarkers();
-       document.querySelectorAll('.drop-target-bg').forEach(el => el.classList.remove('drop-target-bg'));
+        document.querySelectorAll('.drop-target-bg').forEach(el => el.classList.remove('drop-target-bg'));
         dom.mainScroll.classList.remove('border-dashed', 'border-4', 'border-[var(--ring-color)]', 'border-opacity-50');
 
-        if(!dropTarget || !dragSource) return; 
-        
+        if (!dropTarget || !dragSource) return;
+
         // Wrap in try/catch to ensure UI doesn't freeze if logic errors out
         try {
-            saveState(); 
+            saveState();
 
             const idsToMove = new Set(dragSource.selectedIds);
             const itemsToMove = [];
             const originalTopLevelIndices = [];
             for (let i = state.items.length - 1; i >= 0; i--) {
                 const item = state.items[i];
-                
+
                 // Remove selected pages from within a container
                 if (item.pages) {
                     for (let j = item.pages.length - 1; j >= 0; j--) {
@@ -2372,21 +2453,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (dropTarget.action.includes('reorder')) {
-                const newItems = itemsToMove.map(movedItem => { 
+                const newItems = itemsToMove.map(movedItem => {
                     // If it's already a container (multi-page or single-page wrapper), move it as is.
                     if (movedItem.pages) return movedItem;
                     // If it's a bare page object, wrap it in a new single-page container.
                     const page = movedItem;
                     return {
-                        id: 'loose_' + Date.now() + Math.random().toString(36).substr(2, 5), type: page.type || 'page', name: page.name || 'Page', 
-                        expanded: true, isMultiPage: false, color: page.originalColor, thumbBg: page.originalThumbBg, pages: [page] 
+                        id: 'loose_' + Date.now() + Math.random().toString(36).substr(2, 5), type: page.type || 'page', name: page.name || 'Page',
+                        expanded: true, isMultiPage: false, color: page.originalColor, thumbBg: page.originalThumbBg, pages: [page]
                     };
-                }).filter(item => item && item.pages && item.pages.length > 0); 
-            
-            if (newItems.length > 0) state.items.splice(destIdx, 0, ...newItems); 
-        }
-        state.selected.clear(); render(); 
-        
+                }).filter(item => item && item.pages && item.pages.length > 0);
+
+                if (newItems.length > 0) state.items.splice(destIdx, 0, ...newItems);
+            }
+            state.selected.clear(); render();
+
         } catch (err) {
             console.error("Drop Error:", err);
             // Ensure render happens to reset confusing state even on error
@@ -2397,16 +2478,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateSelectionVisuals() { 
-        document.querySelectorAll('.selectable-item').forEach(el => { if(state.selected.has(el.dataset.id)) el.classList.add('is-selected'); else el.classList.remove('is-selected'); }); 
-        dom.statusMsg.innerText = state.selected.size > 0 ? `${state.selected.size} item selected` : ""; 
-        const delBtn = document.getElementById('btn-delete'); if(delBtn) delBtn.disabled = state.selected.size === 0; 
+    function updateSelectionVisuals() {
+        document.querySelectorAll('.selectable-item').forEach(el => { if (state.selected.has(el.dataset.id)) el.classList.add('is-selected'); else el.classList.remove('is-selected'); });
+        dom.statusMsg.innerText = state.selected.size > 0 ? `${state.selected.size} item selected` : "";
+        const delBtn = document.getElementById('btn-delete'); if (delBtn) delBtn.disabled = state.selected.size === 0;
     }
-    window.handleBgClick = function(e) { if(e.target === dom.gridView || e.target === dom.listView) { state.selected.clear(); updateSelectionVisuals(); } }
+    window.handleBgClick = function (e) { if (e.target === dom.gridView || e.target === dom.listView) { state.selected.clear(); updateSelectionVisuals(); } }
     function positionMarkerV(x, y, h) { const r = dom.mainScroll.getBoundingClientRect(); dom.markerV.style.left = (x - r.left - 2) + 'px'; dom.markerV.style.top = (y - r.top + dom.mainScroll.scrollTop) + 'px'; dom.markerV.style.height = h + 'px'; dom.markerV.classList.remove('hidden'); }
     function positionMarkerH(x, w, y) { const r = dom.mainScroll.getBoundingClientRect(); dom.markerH.style.left = (x - r.left) + 'px'; dom.markerH.style.top = (y - r.top + dom.mainScroll.scrollTop - 2) + 'px'; dom.markerH.style.width = w + 'px'; dom.markerH.classList.remove('hidden'); }
     function resetMarkers() { dom.markerV.classList.add('hidden'); dom.markerH.classList.add('hidden'); }
-    
+
     // --- KEYBOARD HELPER FUNCTIONS ---
     function rotateSelected() {
         if (state.selected.size === 0) return;
@@ -2436,7 +2517,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function moveSelected(dir) {
         if (!state.lastSelectedId) return;
-        
+
         // 1. Check if we are moving a Top-Level Item
         // This includes Containers (matched by ID) AND Single-Page Wrappers (matched by Page ID)
         let itemIdx = state.items.findIndex(i => i.id === state.lastSelectedId);
@@ -2457,7 +2538,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
-        
+
         // 2. Try moving a page inside a Multi-Page Container
         for (let i = 0; i < state.items.length; i++) {
             const item = state.items[i];
@@ -2502,9 +2583,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function navigateGrid(key, onlyTopLevel) {
         if (!state.lastSelectedId) {
-             const visible = onlyTopLevel ? getTopLevelItems() : getVisibleItems();
-             if (visible.length > 0) selectId(visible[0]);
-             return;
+            const visible = onlyTopLevel ? getTopLevelItems() : getVisibleItems();
+            if (visible.length > 0) selectId(visible[0]);
+            return;
         }
 
         const currentEl = document.querySelector(`.selectable-item[data-id="${state.lastSelectedId}"]`);
@@ -2513,11 +2594,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentRect = currentEl.getBoundingClientRect();
         // If container, use header for spatial reference
         if (currentEl.dataset.type === 'container') {
-             const isExpanded = state.expandedContainerId === currentEl.dataset.id;
-             if (isExpanded) {
-                 const header = currentEl.firstElementChild;
-                 if (header) currentRect = header.getBoundingClientRect();
-             }
+            const isExpanded = state.expandedContainerId === currentEl.dataset.id;
+            if (isExpanded) {
+                const header = currentEl.firstElementChild;
+                if (header) currentRect = header.getBoundingClientRect();
+            }
         }
 
         const currentCenter = {
@@ -2538,8 +2619,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 siblings.forEach(el => {
                     if (el === currentEl) return;
                     const rect = el.getBoundingClientRect();
-                    const center = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
-                    
+                    const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+
                     let isDir = false;
                     if (key === 'ArrowUp') {
                         if (center.y < currentCenter.y - threshold) isDir = true;
@@ -2551,7 +2632,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const dx = center.x - currentCenter.x;
                         const dy = center.y - currentCenter.y;
                         const dist = (dx * dx) + (dy * dy);
-                        
+
                         if (dist < minSiblingDist) {
                             minSiblingDist = dist;
                             bestSibling = el;
@@ -2572,7 +2653,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         allItems.forEach(el => {
             if (el.dataset.id === state.lastSelectedId) return;
-            
+
             if (onlyTopLevel) {
                 const type = el.dataset.type;
                 if (type !== 'container' && type !== 'card-toplevel') return;
@@ -2580,11 +2661,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let rect = el.getBoundingClientRect();
             if (el.dataset.type === 'container') {
-                 const isExpanded = state.expandedContainerId === el.dataset.id;
-                 if (isExpanded) {
-                     const header = el.firstElementChild;
-                     if (header) rect = header.getBoundingClientRect();
-                 }
+                const isExpanded = state.expandedContainerId === el.dataset.id;
+                if (isExpanded) {
+                    const header = el.firstElementChild;
+                    if (header) rect = header.getBoundingClientRect();
+                }
             }
 
             const center = {
@@ -2593,7 +2674,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             let isDirection = false;
-            const threshold = 10; 
+            const threshold = 10;
 
             if (key === 'ArrowUp') {
                 if (center.y < currentCenter.y - threshold) isDirection = true;
@@ -2605,7 +2686,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dx = center.x - currentCenter.x;
                 const dy = center.y - currentCenter.y;
                 const dist = (dx * dx) + (dy * dy);
-                
+
                 if (dist < minDistance) {
                     minDistance = dist;
                     bestCandidate = el;
@@ -2620,7 +2701,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function navigateSelection(dir, onlyTopLevel) {
         if (state.items.length === 0) return;
-        
+
         const visible = onlyTopLevel ? getTopLevelItems() : getVisibleItems();
         if (visible.length === 0) return;
 
@@ -2632,7 +2713,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let currIdx = visible.indexOf(state.lastSelectedId);
-        
+
         if (onlyTopLevel && currIdx === -1) {
             const parent = state.items.find(i => i.pages.some(p => p.id === state.lastSelectedId));
             if (parent) {
@@ -2668,12 +2749,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initial load
-    document.getElementById('resize-chk').checked = state.resizeToFit; 
+    document.getElementById('resize-chk').checked = state.resizeToFit;
     document.getElementById('keep-expanded-chk').checked = state.keepExpanded;
     if (!state.items) state.items = [];
 
     if (state.items.length === 0) {
-        state.history = ["[]\n"]; 
+        state.history = ["[]\n"];
         dom.startView.classList.remove('hidden');
         dom.gridView.classList.add('hidden');
         dom.listView.classList.add('hidden');
