@@ -99,36 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerCounter: document.getElementById('viewer-counter')
     };
 
-    // --- INJECT ABOUT BUTTON ---
-    const helpBtn = document.getElementById('btn-help');
-    if (helpBtn && helpBtn.parentNode) {
-        if (!helpBtn.parentNode.classList.contains('relative')) {
-            helpBtn.parentNode.classList.add('relative');
-        }
-
-        const aboutBtn = document.createElement('button');
-        aboutBtn.id = 'btn-about';
-        aboutBtn.className = helpBtn.className;
-        aboutBtn.innerHTML = '<i class="fas fa-info-circle text-xs"></i>'; // Ensure text-xs is here too
-        aboutBtn.title = "About";
-        aboutBtn.onclick = () => window.toggleAbout();
-        helpBtn.parentNode.insertBefore(aboutBtn, helpBtn.nextSibling);
-
-        const aboutModal = document.createElement('div');
-        aboutModal.id = 'about-modal';
-        aboutModal.className = 'absolute top-full right-0 mt-2 z-50 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl shadow-2xl p-6 hidden';
-        aboutModal.innerHTML = `
-                <div class="text-center">
-                    <div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-info text-xl"></i>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2">About Combine+</h3>
-                    <p class="text-sm text-[var(--text-sub)] mb-1">This App. was designed by Khalid Ghaith and Gemini</p>
-                    <p class="text-xs text-[var(--text-sub)] opacity-70">Version ${appVersion}</p>
-                </div>
-        `;
-        helpBtn.parentNode.appendChild(aboutModal);
-    }
+    // --- UI SETUP ---
+    const aboutVersionDisplay = document.getElementById('about-version-display');
+    if (aboutVersionDisplay) aboutVersionDisplay.innerText = 'Version ' + appVersion;
 
     const selectionBox = document.createElement('div');
     selectionBox.id = 'viewer-selection-box';
@@ -1031,6 +1004,74 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    window.checkForUpdates = async function (manual = false) {
+        const statusEl = document.getElementById('update-status');
+        const updateBtn = document.getElementById('check-updates-btn');
+
+        if (manual && statusEl) {
+            statusEl.innerText = 'Checking for updates...';
+            statusEl.className = 'text-xs font-semibold text-center h-4 text-[var(--text-sub)] animate-pulse';
+            if (updateBtn) updateBtn.disabled = true;
+        }
+
+        try {
+            const response = await fetch('https://api.github.com/repos/khalidghaith/Combine-Plus/releases/latest', { cache: "no-store" });
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+
+            const latestVersion = data.tag_name || data.name || '';
+            const cleanLatest = latestVersion.replace(/^v/, '').trim();
+            const cleanCurrent = appVersion.replace(/^v/, '').trim();
+
+            const isNewer = (latest, current) => {
+                const lParts = latest.split('.').map(Number);
+                const cParts = current.split('.').map(Number);
+                for (let i = 0; i < Math.max(lParts.length, cParts.length); i++) {
+                    const l = lParts[i] || 0;
+                    const c = cParts[i] || 0;
+                    if (l > c) return true;
+                    if (l < c) return false;
+                }
+                return false;
+            };
+
+            if (cleanLatest && cleanLatest !== cleanCurrent && isNewer(cleanLatest, cleanCurrent)) {
+                if (statusEl) {
+                    statusEl.innerText = `Update Available (v${cleanLatest})!`;
+                    statusEl.className = 'text-xs font-semibold text-center h-4 text-green-500';
+                }
+                if (!manual) {
+                    showMessageModal('Update Available', `A new version (v${cleanLatest}) is available! Visit the About tab to download it.`, 'info');
+                }
+                if (updateBtn) {
+                    updateBtn.innerText = 'Download Update';
+                    updateBtn.onclick = () => {
+                        if (isElectron && ipcRenderer) {
+                            require('electron').shell.openExternal(data.html_url);
+                        } else {
+                            window.open(data.html_url, '_blank');
+                        }
+                    };
+                }
+            } else {
+                if (manual && statusEl) {
+                    statusEl.innerText = 'You are on the latest version.';
+                    statusEl.className = 'text-xs font-semibold text-center h-4 text-[var(--text-sub)]';
+                }
+            }
+        } catch (e) {
+            console.error("Update check failed:", e);
+            if (manual && statusEl) {
+                statusEl.innerText = 'Failed to check for updates.';
+                statusEl.className = 'text-xs font-semibold text-center h-4 text-red-500';
+            }
+        } finally {
+            if (manual && updateBtn && updateBtn.innerText === 'Check for Updates') {
+                updateBtn.disabled = false;
+            }
+        }
+    }
+
     window.toggleTheme = function () {
         const isLight = document.body.classList.contains('theme-light');
         state.theme = isLight ? 'dark' : 'light';
@@ -1839,7 +1880,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Button States
         const baseClass = "w-7 h-7 rounded text-xs transition-all flex items-center justify-center";
-        const activeClass = "bg-white dark:bg-gray-600 shadow-sm text-[var(--text-main)]";
+        const activeClass = "bg-white dark:bg-gray-600 shadow-sm text-[var(--accent)]";
         const inactiveClass = "text-[var(--text-sub)] hover:text-[var(--text-main)] bg-transparent";
         document.getElementById('btn-grid').className = `${baseClass} ${state.view === 'grid' ? activeClass : inactiveClass}`;
         document.getElementById('btn-list').className = `${baseClass} ${state.view === 'list' ? activeClass : inactiveClass}`;
@@ -2755,11 +2796,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (state.items.length === 0) {
         state.history = ["[]\n"];
-        dom.startView.classList.remove('hidden');
-        dom.gridView.classList.add('hidden');
-        dom.listView.classList.add('hidden');
-    } else {
-        switchView(state.view);
     }
+    render();
     updateToolbarState();
+
+    // Check for updates silently shortly after launch
+    setTimeout(() => window.checkForUpdates(false), 2000);
 });

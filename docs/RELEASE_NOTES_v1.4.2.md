@@ -3,9 +3,11 @@
 **Release Date:** February 2026
 
 ## Features & Enhancements
+- **Automated Update System:** Combine+ now automatically checks for the latest releases on GitHub upon startup. A notification will appear if an update is available.
+- **Improved "About" Dialog:** Redesigned the "About" modal to align with Help and Settings menus. It now includes a "Check for Updates" button that allows users to manually verify their version and download the latest release directly from GitHub.
+- **Unlimited Context Menu Selections:** Fixed the Windows-enforced 15-file selection limit. You can now select an unlimited number of files in Windows Explorer, right-click, and successfully select "Merge with Combine+".
 - **List View Context Menu:** Added a new Right-Click Context Menu in the List View, featuring quick "Expand All" and "Collapse All" functionality for better organization of multi-page documents.
 - **Smart Viewer Auto-Fit:** The Detail Viewer now automatically applies "Fit to Page" scaling when initially opening a document. Additionally, when using the Next/Previous buttons to navigate through pages, the viewer dynamically recalculates and snaps to the correct fit when encountering pages with different dimensions or aspect ratios.
-- **Unlimited Context Menu Selections:** Lifted the Windows-enforced 15-file selection limit. You can now select an unlimited number of files in Windows Explorer, right-click, and successfully click "Merge with Combine+".
 - **High-Resolution Vector Restored:** Re-implemented the native `pdf.js` rendering engine in the detail viewer to ensure text and vector lines remain perfectly crisp and scalable at maximum zoom levels, resolving blurring issues caused by raster fallbacks.
 
 ## Bug Fixes

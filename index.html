@@ -49,6 +49,9 @@
                     <button id="btn-help" onclick="toggleHelp()"
                         class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]"
                         title="Help"><i class="fas fa-question-circle text-xs"></i></button>
+                    <button id="btn-about" onclick="toggleAbout()"
+                        class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]"
+                        title="About Combine+"><i class="fas fa-info-circle text-xs"></i></button>
                     <button onclick="toggleTheme()"
                         class="w-8 h-8 rounded hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors text-[var(--text-sub)]"
                         title="Toggle Theme"><i id="theme-icon" class="fas fa-moon text-xs"></i></button>
@@ -87,7 +90,7 @@
             <div class="flex-1 flex items-center gap-2 min-w-fit justify-end">
                 <div class="bg-[var(--bg-secondary)] p-0.5 rounded-md flex border border-[var(--border)]">
                     <button onclick="switchView('grid')" id="btn-grid"
-                        class="w-7 h-7 rounded text-xs transition-all bg-white shadow-sm text-[var(--text-main)] flex items-center justify-center"
+                        class="w-7 h-7 rounded text-xs transition-all bg-white dark:bg-gray-600 shadow-sm text-[var(--accent)] flex items-center justify-center"
                         title="Grid View"><i class="fas fa-th-large"></i></button>
                     <button onclick="switchView('list')" id="btn-list"
                         class="w-7 h-7 rounded text-xs transition-all text-[var(--text-sub)] flex items-center justify-center"
@@ -130,7 +133,7 @@
         <div id="help-modal"
             class="absolute top-16 left-52 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-xl p-5 z-50 hidden">
             <h3 class="font-bold mb-3 border-b border-[var(--border)] pb-2 flex items-center gap-2"><i
-                    class="fas fa-info-circle text-[var(--accent)]"></i> Help & Tips</h3>
+                    class="fas fa-question-circle text-[var(--accent)]"></i> Help & Tips</h3>
             <ul class="text-sm space-y-3 text-[var(--text-sub)]">
                 <li class="flex items-start gap-2"><i class="fas fa-mouse-pointer mt-1 opacity-50"></i>
                     <span><strong>Shift+Click</strong> or <strong>Ctrl+Click</strong> to select multiple items.</span>
@@ -139,20 +142,42 @@
                     <span><strong>Arrows</strong> to navigate. <strong>Shift+Arrows</strong> for top-level only.</span>
                 </li>
                 <li class="flex items-start gap-2"><i class="fas fa-exchange-alt mt-1 opacity-50"></i>
-                    <span><strong>Ctrl+Arrows</strong> to move selected item/page.</span></li>
+                    <span><strong>Ctrl+Arrows</strong> to move selected item/page.</span>
+                </li>
                 <li class="flex items-start gap-2"><i class="fas fa-arrows-alt mt-1 opacity-50"></i> <span><strong>Drag
                             & Drop</strong> pages to rearrange them or move them between files.</span></li>
                 <li class="flex items-start gap-2"><i class="fas fa-search-plus mt-1 opacity-50"></i> <span><strong>Ctrl
                             + Scroll</strong> in Grid View to zoom in/out (change column count).</span></li>
                 <li class="flex items-start gap-2"><i class="fas fa-keyboard mt-1 opacity-50"></i>
                     <span><strong>Ctrl+D</strong> Duplicate, <strong>Ctrl+R</strong> Rotate, <strong>Del</strong>
-                        Delete.</span></li>
+                        Delete.</span>
+                </li>
                 <li class="flex items-start gap-2"><i class="fas fa-plus-circle mt-1 opacity-50"></i>
                     <span><strong>Ctrl+O</strong> Add Files, <strong>Ctrl+S</strong> Export,
-                        <strong>Ctrl+Shift+R</strong> Reset App.</span></li>
+                        <strong>Ctrl+Shift+R</strong> Reset App.</span>
+                </li>
                 <li class="flex items-start gap-2"><i class="fas fa-clipboard mt-1 opacity-50"></i>
-                    <span><strong>Ctrl+V</strong> to paste files or screenshots from clipboard.</span></li>
+                    <span><strong>Ctrl+V</strong> to paste files or screenshots from clipboard.</span>
+                </li>
             </ul>
+        </div>
+
+        <!-- About Modal -->
+        <div id="about-modal"
+            class="absolute top-16 left-64 w-80 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-xl p-5 z-50 hidden flex flex-col items-center">
+
+            <div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-info text-xl"></i>
+            </div>
+            <h3 class="text-lg font-bold mb-2 text-[var(--text-main)]">About Combine+</h3>
+            <p class="text-sm text-[var(--text-sub)] text-center mb-1">Designed by Khalid Ghaith using Gemini</p>
+            <p class="text-xs text-[var(--text-sub)] opacity-70 mb-4" id="about-version-display"></p>
+
+            <button id="check-updates-btn" onclick="checkForUpdates(true)"
+                class="w-full py-2 bg-[var(--accent)] hover:bg-orange-600 text-[var(--bg-secondary)] rounded-lg text-sm font-medium transition-colors shadow-sm mb-2">
+                Check for Updates
+            </button>
+            <p id="update-status" class="text-xs font-semibold text-center h-4 text-[var(--text-sub)]"></p>
         </div>
 
         <!-- Reset Confirmation Modal -->
