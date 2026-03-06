@@ -883,8 +883,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const fileId = 'f_' + Date.now() + Math.random().toString(36).substr(2, 9);
-            const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500'];
-            const thumbBgs = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50'];
+            const colors = [
+                'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500',
+                'bg-pink-500', 'bg-teal-500', 'bg-indigo-500', 'bg-yellow-500', 'bg-cyan-500',
+                'bg-lime-500', 'bg-fuchsia-500', 'bg-amber-500', 'bg-emerald-500', 'bg-rose-500',
+                'bg-sky-500', 'bg-violet-500', 'bg-stone-500', 'bg-slate-500', 'bg-neutral-500'
+            ];
+            const thumbBgs = [
+                'bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50',
+                'bg-pink-50', 'bg-teal-50', 'bg-indigo-50', 'bg-yellow-50', 'bg-cyan-50',
+                'bg-lime-50', 'bg-fuchsia-50', 'bg-amber-50', 'bg-emerald-50', 'bg-rose-50',
+                'bg-sky-50', 'bg-violet-50', 'bg-stone-50', 'bg-slate-50', 'bg-neutral-50'
+            ];
             const colorIdx = state.items.length % colors.length;
 
             const newPages = [];
@@ -923,31 +933,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EXPORT LOGIC ---
-    window.exportPdf = async function () {
+    window.exportPdf = function () {
         if (state.items.length === 0) return;
-        const btn = document.getElementById('export-btn');
+
+        // Show modal instead of instant export
+        const exportModal = document.getElementById('export-modal');
+        const batchOption = document.getElementById('export-batch-option');
+        const batchWarning = document.getElementById('batch-warning');
+        const exportModeSelect = document.getElementById('export-mode');
+
+        // Check if batch is allowed (needs > 1 top-level item)
+        const multiItems = state.items.length > 1;
+        batchOption.disabled = !multiItems;
+        if (!multiItems && exportModeSelect.value === 'batch') {
+            exportModeSelect.value = 'merge';
+        }
+        batchWarning.classList.toggle('hidden', multiItems);
+        toggleExportModeSettings();
+
+        exportModal.classList.remove('hidden');
+    }
+
+    window.closeExportModal = function () {
+        document.getElementById('export-modal').classList.add('hidden');
+    }
+
+    window.toggleExportModeSettings = function () {
+        const mode = document.getElementById('export-mode').value;
+        const formatSelect = document.getElementById('export-format');
+        // Any specific UI changes based on mode can go here
+    }
+
+    window.toggleOptimizeSettings = function () {
+        const isOpt = document.getElementById('export-optimize-chk').checked;
+        const panel = document.getElementById('optimize-settings-panel');
+        if (isOpt) {
+            panel.classList.remove('opacity-50', 'pointer-events-none');
+        } else {
+            panel.classList.add('opacity-50', 'pointer-events-none');
+        }
+    }
+
+    window.triggerFinalExport = async function () {
+        if (state.items.length === 0) return;
+        const btn = document.getElementById('btn-final-export');
+        const originalBtnText = btn.innerHTML;
+
+        // Gather options
+        const exportOptions = {
+            mode: document.getElementById('export-mode').value,
+            format: document.getElementById('export-format').value,
+            optimize: document.getElementById('export-optimize-chk').checked,
+            triggerDpi: parseInt(document.getElementById('opt-trigger-dpi').value) || 300,
+            targetDpi: parseInt(document.getElementById('opt-target-dpi').value) || 150
+        };
 
         if (isElectron) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             btn.disabled = true;
             try {
-                let savePath = await ipcRenderer.invoke('save-file-dialog');
+                // If batch mode, pick a folder. If merge mode, pick a file.
+                // We'll tell main.js to show the right dialog.
+                let savePath = await ipcRenderer.invoke('save-file-dialog', { mode: exportOptions.mode });
 
                 // Handle Electron dialog result object if returned directly
                 if (savePath && typeof savePath === 'object' && 'canceled' in savePath) {
                     if (savePath.canceled) return;
-                    savePath = savePath.filePath;
+                    savePath = exportOptions.mode === 'batch' ? savePath.filePaths[0] : savePath.filePath;
                 }
 
-                // If the user cancels the dialog, savePath will be falsy.
-                if (!savePath) {
-                    return; // Exit without showing any modal. The 'finally' block will still run.
-                }
+                if (!savePath) return; // Canceled dialog
+
                 const exportList = [];
                 state.items.forEach(item => {
+                    // For batch logic later in python, it might be useful to group by top-level item.
+                    // For now, we'll maintain the exact same structure but inject top-level info.
                     if (item.pages) {
                         item.pages.forEach(p => {
-                            exportList.push({ path: p.path, originalIndex: p.originalIndex, rot: p.rot, type: p.type });
+                            exportList.push({
+                                path: p.path,
+                                originalIndex: p.originalIndex,
+                                rot: p.rot,
+                                type: p.type,
+                                parentName: item.name // useful for batch
+                            });
                         });
                     }
                 });
@@ -957,8 +1026,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     author: document.getElementById('meta-author').value
                 };
 
+                // Close modal
+                closeExportModal();
+
+                // Show a spinning overall status in the UI
+                const mainExportBtn = document.getElementById('export-btn');
+                mainExportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                mainExportBtn.disabled = true;
+
                 const result = await ipcRenderer.invoke('merge-files', {
-                    items: exportList, outputPath: savePath, metadata, resizeToFit: state.resizeToFit
+                    items: exportList,
+                    outputPath: savePath,
+                    metadata,
+                    resizeToFit: state.resizeToFit,
+                    exportOptions // pass the new options
                 });
 
                 if (result.success) {
@@ -966,25 +1047,30 @@ document.addEventListener('DOMContentLoaded', () => {
                         const list = result.failedFiles.map(f => `• ${f}`).join('\n');
                         showMessageModal('Completed with Issues', `Saved successfully, but the following files were skipped due to errors (e.g., encryption):\n${list}`, true);
                     } else {
-                        showMessageModal('Success', 'File saved successfully.', false);
+                        showMessageModal('Success', 'File(s) saved successfully.', false);
                     }
                 }
                 else showMessageModal('Error', result.error, true);
 
+                mainExportBtn.innerHTML = '<i class="fas fa-download transition-transform duration-300 hover:scale-110"></i>';
+                mainExportBtn.disabled = false;
+
             } catch (e) {
-                // The cancellation case is handled above, so any error here is a real processing error.
                 showMessageModal('Export Error', e.message, true);
+                const mainExportBtn = document.getElementById('export-btn');
+                mainExportBtn.innerHTML = '<i class="fas fa-download transition-transform duration-300 hover:scale-110"></i>';
+                mainExportBtn.disabled = false;
             } finally {
-                btn.innerHTML = '<i class="fas fa-download transition-transform duration-300 hover:scale-110"></i>';
+                btn.innerHTML = originalBtnText;
                 btn.disabled = false;
             }
         } else {
+            closeExportModal();
             showMessageModal('Browser Preview', "Export is simulated in browser preview.", false);
         }
     }
 
     // --- UI ACTIONS ---
-    window.toggleSettings = function () { dom.settingsModal.classList.toggle('hidden'); dom.helpModal.classList.add('hidden'); }
     window.toggleSettings = function () {
         dom.settingsModal.classList.toggle('hidden');
         dom.helpModal.classList.add('hidden');

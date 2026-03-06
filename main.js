@@ -2,7 +2,8 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
- const sharp = require('sharp');
+const sharp = require('sharp');
+const { Jimp } = require('jimp');
 const PDFDocumentKit = require('pdfkit');
 const SVGtoPDF = require('svg-to-pdfkit');
 
@@ -16,7 +17,7 @@ function createWindow() {
         height: 800,
         minWidth: 800,
         minHeight: 600,
-        frame: true, 
+        frame: true,
         backgroundColor: '#FDFCF8',
         title: '',
         icon: path.join(__dirname, 'icon.ico'),
@@ -48,7 +49,7 @@ if (!gotTheLock) {
         if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
             mainWindow.focus();
-            
+
             // Handle files passed to the second instance
             // Filter out flags (arguments starting with --)
             const files = commandLine.slice(1).filter(arg => !arg.startsWith('--'));
@@ -81,16 +82,23 @@ ipcMain.handle('select-files', async () => {
     return result.canceled ? [] : result.filePaths;
 });
 
-ipcMain.handle('save-file-dialog', async () => {
-    return await dialog.showSaveDialog({
-        title: 'Export Combined PDF',
-        defaultPath: 'combined_document.pdf',
-        filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
-    });
+ipcMain.handle('save-file-dialog', async (event, options = {}) => {
+    if (options.mode === 'batch') {
+        return await dialog.showOpenDialog(mainWindow, {
+            title: 'Export Batch PDFs (Select Folder)',
+            properties: ['openDirectory', 'createDirectory']
+        });
+    } else {
+        return await dialog.showSaveDialog({
+            title: 'Export Combined PDF',
+            defaultPath: 'combined_document.pdf',
+            filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+        });
+    }
 });
 
 ipcMain.handle('merge-files', async (event, data) => {
-    const { items, outputPath, resizeToFit, metadata } = data;
+    const { items, outputPath, resizeToFit, metadata, exportOptions } = data;
     const tempDir = path.join(app.getPath('temp'), 'combine-plus-temp');
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
@@ -99,7 +107,7 @@ ipcMain.handle('merge-files', async (event, data) => {
 
     // Path Logic: Use EXE in production, PY in development
     const isPackaged = app.isPackaged;
-    const enginePath = isPackaged 
+    const enginePath = isPackaged
         ? path.join(process.resourcesPath, 'bin', 'merge_engine.exe')
         : path.resolve(app.getAppPath(), 'merge_engine.py');
 
@@ -107,19 +115,22 @@ ipcMain.handle('merge-files', async (event, data) => {
         for (const item of items) {
             const ext = path.extname(item.path).toLowerCase();
             const isImage = item.type === 'img' || /\.(jpg|jpeg|png|webp|svg|tif|tiff|avif|bmp|gif)$/i.test(item.path);
-            
+
             if (isImage) {
                 try {
                     const tempPdfPath = path.join(tempDir, `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.pdf`);
                     let imgData = item.path;
-                    
+
                     // Convert formats that PDFKit doesn't natively support (everything except JPG/PNG)
-                    if (['.webp', '.avif', '.tiff', '.tif', '.bmp', '.gif'].includes(ext)) {
+                    if (ext === '.bmp') {
+                        const img = await Jimp.read(item.path);
+                        imgData = await img.getBuffer('image/png');
+                    } else if (['.webp', '.avif', '.tiff', '.tif', '.gif'].includes(ext)) {
                         imgData = await sharp(item.path).png().toBuffer();
                     }
 
-                    const metadata = await sharp(imgData).metadata();
-                    const doc = new PDFDocumentKit({ size: [metadata.width, metadata.height], margin: 0 });
+                    const md = await sharp(imgData).metadata();
+                    const doc = new PDFDocumentKit({ size: [md.width, md.height], margin: 0 });
 
                     // AUTOMATED FONT LOOKUP: Reduces user labor by scanning common system font paths
                     const fontPaths = [
@@ -127,17 +138,17 @@ ipcMain.handle('merge-files', async (event, data) => {
                         '/Library/Fonts/',
                         '/usr/share/fonts/'
                     ];
-                    
+
                     const registerFontIfFound = (fontName) => {
                         const variations = [
-                            `${fontName}.ttf`, `${fontName}.otf`, 
+                            `${fontName}.ttf`, `${fontName}.otf`,
                             `${fontName} Regular.ttf`, `${fontName.replace(/\s/g, '')}.ttf`
                         ];
                         for (const dir of fontPaths) {
                             for (const v of variations) {
                                 const fullPath = path.join(dir, v);
                                 if (fs.existsSync(fullPath)) {
-                                    try { doc.registerFont(fontName, fullPath); return true; } catch(e){}
+                                    try { doc.registerFont(fontName, fullPath); return true; } catch (e) { }
                                 }
                             }
                         }
@@ -156,33 +167,33 @@ ipcMain.handle('merge-files', async (event, data) => {
                         }
 
                         SVGtoPDF(doc, svgString, 0, 0, {
-                            width: metadata.width,
-                            height: metadata.height,
+                            width: md.width,
+                            height: md.height,
                             useFont: (f) => registerFontIfFound(f) ? f : 'Helvetica'
                         });
                     } else {
-                        doc.image(imgData, 0, 0, { width: metadata.width, height: metadata.height });
+                        doc.image(imgData, 0, 0, { width: md.width, height: md.height });
                     }
 
                     doc.end();
                     await new Promise((res, rej) => { stream.on('finish', res); stream.on('error', rej); });
-                    processedItems.push({ path: tempPdfPath, originalIndex: 0, rot: item.rot || 0, isTemp: true });
+                    processedItems.push({ path: tempPdfPath, originalIndex: 0, rot: item.rot || 0, isTemp: true, parentName: item.parentName });
                 } catch (e) {
                     failedFiles.push(path.basename(item.path));
                 }
             } else {
-                processedItems.push({ path: item.path, originalIndex: item.originalIndex, rot: item.rot || 0 });
+                processedItems.push({ path: item.path, originalIndex: item.originalIndex, rot: item.rot || 0, parentName: item.parentName });
             }
         }
 
-        const payload = JSON.stringify({ items: processedItems, outputPath, resizeToFit: !!resizeToFit, metadata });
+        const payload = JSON.stringify({ items: processedItems, outputPath, resizeToFit: !!resizeToFit, metadata, exportOptions });
 
         return new Promise((resolve) => {
             const runArgs = isPackaged ? [payload] : [enginePath, payload];
             const runCmd = isPackaged ? enginePath : 'python';
 
             execFile(runCmd, runArgs, { maxBuffer: 1024 * 1024 * 50 }, (error, stdout, stderr) => {
-                processedItems.filter(i => i.isTemp).forEach(i => { try { fs.unlinkSync(i.path); } catch (e) {} });
+                processedItems.filter(i => i.isTemp).forEach(i => { try { fs.unlinkSync(i.path); } catch (e) { } });
                 if (error) return resolve({ success: false, error: stderr || error.message });
                 try {
                     resolve({ ...JSON.parse(stdout.trim()), failedFiles });
@@ -217,12 +228,12 @@ ipcMain.handle('render-page-view', async (event, { filePath, pageIndex, mode, sc
         // If scale is 10.0 (1000%), we render at 720 DPI.
         // We cap at 400 DPI to prevent memory exhaustion on extreme zooms, 
         // while still providing very crisp "vector-like" quality for screen viewing.
-        let dpiScale = Math.min(scale, 400/72); 
-        
+        let dpiScale = Math.min(scale, 400 / 72);
+
         const matrix = mupdf.Matrix.scale(dpiScale, dpiScale);
         const pixmap = page.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false);
         const pngBuffer = pixmap.asPNG();
-        
+
         if (pixmap.destroy) pixmap.destroy();
         return { success: true, data: pngBuffer, type: 'png' };
     } catch (err) {

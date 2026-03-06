@@ -116,11 +116,6 @@
                 </div>
                 <div class="pt-2 border-t border-[var(--border)]">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="resize-chk" onchange="toggleResizeSetting()"
-                            class="rounded text-teal-500">
-                        <span class="text-sm">Resize pages to fit width</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer mt-2">
                         <input type="checkbox" id="keep-expanded-chk" onchange="toggleKeepExpanded()"
                             class="rounded text-teal-500">
                         <span class="text-sm">Keep folders expanded</span>
@@ -202,6 +197,107 @@
                     <button onclick="confirmResetApp()"
                         class="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white shadow-md transition-colors">Yes,
                         Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Options Modal -->
+        <div id="export-modal"
+            class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/50 hidden">
+            <div
+                class="modal-content bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-xl p-6 w-[400px] max-w-full">
+                <div class="flex items-center gap-4 mb-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-file-export text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-[var(--color)]">Export Options</h3>
+                        <p class="text-xs text-[var(--text-sub)]">Configure how you want to save the output.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Export Mode -->
+                    <div>
+                        <label class="text-xs font-semibold text-[var(--text-sub)] mb-1 block">Export Mode</label>
+                        <select id="export-mode"
+                            class="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm cursor-pointer"
+                            onchange="toggleExportModeSettings()">
+                            <option value="merge">Merge into single PDF</option>
+                            <option value="batch" id="export-batch-option">Export as separate files (Batch)</option>
+                        </select>
+                        <p id="batch-warning" class="text-[10px] text-orange-500 mt-1 hidden">Batch export requires
+                            multiple source files.</p>
+                    </div>
+
+                    <!-- PDF Format -->
+                    <div>
+                        <label class="text-xs font-semibold text-[var(--text-sub)] mb-1 block">Output Format</label>
+                        <select id="export-format"
+                            class="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm cursor-pointer">
+                            <option value="pdf">Standard PDF</option>
+                            <option value="pdfa-1a">PDF/A-1a</option>
+                            <option value="pdfa-1b">PDF/A-1b</option>
+                            <option value="pdfa-2a">PDF/A-2a</option>
+                            <option value="pdfa-2b">PDF/A-2b</option>
+                            <option value="pdfa-2u">PDF/A-2u</option>
+                            <option value="pdfa-3a">PDF/A-3a</option>
+                            <option value="pdfa-3b">PDF/A-3b</option>
+                            <option value="pdfa-3u">PDF/A-3u</option>
+                            <option value="pdfa-4">PDF/A-4</option>
+                            <option value="pdfa-4e">PDF/A-4e</option>
+                            <option value="pdfa-4f">PDF/A-4f</option>
+                            <option value="pdfa-auto">Auto PDF/A Conformance</option>
+                            <option value="pdfx-1a">PDF/X-1a</option>
+                            <option value="pdfx-3">PDF/X-3</option>
+                            <option value="pdfx-4">PDF/X-4</option>
+                        </select>
+                    </div>
+
+                    <!-- Optimization Settings -->
+                    <div class="pt-4 border-t border-[var(--border)]">
+                        <label class="flex items-center gap-2 cursor-pointer mb-4">
+                            <input type="checkbox" id="resize-chk" onchange="toggleResizeSetting()"
+                                class="rounded text-orange-500">
+                            <span class="text-sm font-medium">Resize pages to fit width</span>
+                        </label>
+
+                        <label class="flex items-center gap-2 cursor-pointer mb-2">
+                            <input type="checkbox" id="export-optimize-chk" onchange="toggleOptimizeSettings()"
+                                class="rounded text-orange-500">
+                            <span class="text-sm font-medium">Optimize PDF (Compress Images)</span>
+                        </label>
+
+                        <div id="optimize-settings-panel"
+                            class="grid grid-cols-2 gap-3 pl-6 opacity-50 pointer-events-none transition-opacity">
+                            <div>
+                                <label class="text-[10px] font-semibold text-[var(--text-sub)] mb-0.5 block">Trigger
+                                    Resolution (DPI)</label>
+                                <input type="number" id="opt-trigger-dpi" value="300" min="50" max="1200"
+                                    class="w-full px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm font-mono">
+                                <p class="text-[9px] text-[var(--text-sub)] leading-tight mt-0.5">Compress images above
+                                    this DPI.</p>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-semibold text-[var(--text-sub)] mb-0.5 block">Target
+                                    Resolution (DPI)</label>
+                                <input type="number" id="opt-target-dpi" value="150" min="50" max="1200"
+                                    class="w-full px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm font-mono">
+                                <p class="text-[9px] text-[var(--text-sub)] leading-tight mt-0.5">Downsample them to
+                                    this DPI.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-5 mt-4 border-t border-[var(--border)]">
+                    <button onclick="closeExportModal()"
+                        class="px-4 py-2 rounded-lg text-sm font-medium hover:bg-[var(--hover-bg)] text-[var(--text-sub)] transition-colors">Cancel</button>
+                    <button onclick="triggerFinalExport()" id="btn-final-export"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-orange-500 hover:bg-orange-600 text-white shadow-md transition-colors gap-2 flex items-center">
+                        <i class="fas fa-save"></i> <span>Export</span>
+                    </button>
                 </div>
             </div>
         </div>
