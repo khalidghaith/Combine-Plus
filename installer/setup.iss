@@ -44,6 +44,8 @@ SetupIconFile=..\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+WizardImageFile=..\docs\installer_side.png
+WizardSmallImageFile=..\docs\installer_logo.png
 ArchitecturesInstallIn64BitMode=x64
 ChangesAssociations=yes
 
