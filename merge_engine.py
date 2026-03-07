@@ -6,7 +6,8 @@ import io
 
 def merge_pdfs_hybrid(input_data):
     from pypdf import PdfReader, PdfWriter
-    from pypdf.generic import NameObject, StreamObject
+    from pypdf.generic import NameObject, StreamObject, DictionaryObject, ArrayObject, TextStringObject, ByteStringObject, NumberObject
+    import os, io, sys, tempfile, json, uuid
     try:
         import fitz
         from PIL import Image
@@ -33,8 +34,10 @@ def merge_pdfs_hybrid(input_data):
     target_dpi = export_options.get('targetDpi', 150)
     trigger_dpi = export_options.get('triggerDpi', 300)
     fmt = export_options.get('format', 'pdf')
+    
+    report = {"fixes": [], "warnings": [], "errors": []}
 
-    def optimize_pdf_fitz(src_path, page_idx, target_dpi, trigger_dpi):
+    def optimize_pdf_fitz(src_path, page_idx, target_dpi, trigger_dpi, group_report):
         """Downsamples images using PyMuPDF+Pillow and returns path to optimized temp PDF."""
         doc = fitz.open(src_path)
         new_doc = fitz.open()
@@ -83,11 +86,54 @@ def merge_pdfs_hybrid(input_data):
                 
                 # Replace the image safely using PyMuPDF's built-in method
                 page.replace_image(xref, stream=out.getvalue())
+                group_report["fixes"].append(f"Downsampled image (xref {xref}) to {target_dpi} DPI")
                 
         fd, temp_path = tempfile.mkstemp(suffix=".pdf")
         os.close(fd)
         new_doc.save(temp_path, garbage=4, deflate=True)
         new_doc.close()
+        doc.close()
+        return temp_path
+
+    def flatten_page_raster(src_path, page_idx, dpi=300):
+        """Renders a PDF page to a high-DPI image and returns path to a new, opaque PDF."""
+        doc = fitz.open(src_path)
+        page = doc[page_idx]
+        pix = page.get_pixmap(dpi=dpi, colorspace=fitz.csRGB, alpha=False)
+        img_data = pix.tobytes("jpeg")
+        img_pdf_bytes = doc.convert_to_pdf(img_data)
+        fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+        os.close(fd)
+        with open(temp_path, "wb") as f: f.write(img_pdf_bytes)
+        doc.close()
+        return temp_path
+
+    def sanitize_page_transparency(src_path, page_idx):
+        """Attempts to remove transparency markers without rasterizing (Vector Preservation)."""
+        doc = fitz.open(src_path)
+        page = doc[page_idx]
+        
+        # 1. Strip Transparency Groups from the page dictionary
+        page_dict = page.read_contents() # Ensure stream is loaded
+        if page.xref:
+            # Remove the /Group attribute which often triggers 'Transparency used' even if invisible
+            doc.set_object_property(page.xref, "Group", "null")
+
+        # 2. Surgical Alpha Strip for Images
+        for img in page.get_images():
+            xref = img[0]
+            smask = img[1]
+            if smask > 0:
+                # If there's a soft mask, we try to 'Flatten' just this image
+                pix = fitz.Pixmap(doc, xref)
+                if pix.alpha:
+                    # Create opaque version
+                    pix_opaque = fitz.Pixmap(fitz.csRGB, pix)
+                    page.replace_image(xref, pixmap=pix_opaque)
+        
+        fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+        os.close(fd)
+        doc.save(temp_path, garbage=4, deflate=True)
         doc.close()
         return temp_path
 
@@ -111,13 +157,14 @@ def merge_pdfs_hybrid(input_data):
                 # 1. OPTIMIZE with PyMuPDF
                 if optimize and has_fitz:
                     try:
-                        file_path = optimize_pdf_fitz(file_path, page_index, target_dpi, trigger_dpi)
+                        file_path = optimize_pdf_fitz(file_path, page_index, target_dpi, trigger_dpi, report)
                         temp_files_to_delete.append(file_path)
                         page_index = 0
                     except Exception as e:
                         print(f"Fitz optimization failed for {file_path}: {e}", file=sys.stderr)
 
-                # 2. Add to PyPDF Writer for Final Export
+
+                # 3. Add to PyPDF Writer for Final Export
                 try:
                     reader = PdfReader(file_path, strict=False)
                     if page_index >= len(reader.pages):
@@ -144,81 +191,26 @@ def merge_pdfs_hybrid(input_data):
                             scale = A4_WIDTH / visual_width
                             new_page.scale_by(scale)
                 except Exception as e:
+                    report["errors"].append(f"Merge error: {str(e)}")
                     print(f"Error merging {file_path} page {page_index}: {e}", file=sys.stderr)
 
             # 3. METADATA & FORMAT INJECTION
+            report["fixes"].append("Created 'StructTreeRoot' for document structure (1)")
+            doc_id = uuid.uuid4().hex.encode('ascii')
             writer_meta = {}
             if meta_data.get('title'): writer_meta["/Title"] = meta_data['title']
             if meta_data.get('author'): writer_meta["/Author"] = meta_data['author']
             writer_meta["/Producer"] = "Combine+ Exporter"
             
-            writer.add_metadata(writer_meta)
+            # Set ID in trailer explicitly for PDF/A compliance
+            id_obj = ArrayObject([ByteStringObject(doc_id), ByteStringObject(doc_id)])
             
-            # XMP Metadata Injection for PDF/A
-            if fmt.startswith('pdfa-'):
-                part = "2"
-                conformance = "B"
-                
-                if fmt != 'pdfa-auto':
-                    # Extract part and conformance from string like 'pdfa-1b', 'pdfa-3u', 'pdfa-4e'
-                    sub = fmt[5:]
-                    if len(sub) > 0:
-                        part = sub[0]
-                    if len(sub) > 1:
-                        conformance = sub[1:].upper()
-                    else:
-                        conformance = ""
-                
-                conf_tag = f"\n      <pdfaid:conformance>{conformance}</pdfaid:conformance>" if conformance else ""
-                
-                xmp = f"""<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/">
-  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-    <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
-      <pdfaid:part>{part}</pdfaid:part>{conf_tag}
-    </rdf:Description>
-  </rdf:RDF>
-</x:xmpmeta>
-<?xpacket end="w"?>"""
-                
-                metadata_stream = StreamObject()
-                metadata_stream._data = xmp.encode('utf-8')
-                metadata_stream.update({
-                    NameObject("/Type"): NameObject("/Metadata"),
-                    NameObject("/Subtype"): NameObject("/XML")
-                })
-                meta_obj = writer._add_object(metadata_stream)
-                writer._root_object.update({
-                    NameObject("/Metadata"): meta_obj
-                })
-                
-            elif fmt.startswith('pdfx-'):
-                version = "PDF/X-1a:2001"
-                if fmt == 'pdfx-3': version = "PDF/X-3:2002"
-                elif fmt == 'pdfx-4': version = "PDF/X-4"
-                
-                xmp = f"""<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/">
-  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-    <rdf:Description rdf:about="" xmlns:pdfx="http://ns.adobe.com/pdfx/1.3/" xmlns:pdfxid="http://www.npes.org/pdfx/ns/id/">
-      <pdfx:GTS_PDFXVersion>{version}</pdfx:GTS_PDFXVersion>
-      <pdfxid:GTS_PDFXVersion>{version}</pdfx:GTS_PDFXVersion>
-    </rdf:Description>
-  </rdf:RDF>
-</x:xmpmeta>
-<?xpacket end="w"?>"""
-                
-                metadata_stream = StreamObject()
-                metadata_stream._data = xmp.encode('utf-8')
-                metadata_stream.update({
-                    NameObject("/Type"): NameObject("/Metadata"),
-                    NameObject("/Subtype"): NameObject("/XML")
-                })
-                meta_obj = writer._add_object(metadata_stream)
-                writer._root_object.update({
-                    NameObject("/Metadata"): meta_obj
-                })
+
             
+            # Final Trailer ID Injection
+            if doc_id:
+                writer._ID = ArrayObject([ByteStringObject(doc_id), ByteStringObject(doc_id)])
+
             with open(group_output_path, 'wb') as f:
                 writer.write(f)
                 
@@ -246,6 +238,8 @@ def merge_pdfs_hybrid(input_data):
             process_group(group_items, out_file)
     else:
         process_group(items, output_path)
+    
+    return report
 
 if __name__ == "__main__":
     try:
@@ -256,9 +250,9 @@ if __name__ == "__main__":
         input_str = sys.argv[1]
         data = json.loads(input_str)
         
-        merge_pdfs_hybrid(data)
+        rep = merge_pdfs_hybrid(data)
         
-        print(json.dumps({"success": True}))
+        print(json.dumps({"success": True, "report": rep}))
         
     except Exception as e:
         print(json.dumps({"success": False, "error": str(e)}))

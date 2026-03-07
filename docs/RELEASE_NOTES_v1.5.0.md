@@ -14,14 +14,17 @@ Welcome to **Combine+ version 1.5.0**! This major update introduces powerful opt
 - **DPI Control:** Set custom trigger and target resolutions to balance between crystal-clear quality and compact file footprints.
 - **Transparency Protection:** Logic automatically recognizes and skips transparent icons/logos to prevent artifacts and preserve overprint graphics.
 
-### 📜 Professional PDF Standards
-- **PDF/A Compliance:** Full support for archival formats, including a comprehensive list from **PDF/A-1a** to **PDF/A-4f**.
-- **PDF/X Readiness:** New support for print-ready standards: **PDF/X-1a**, **PDF/X-3**, and **PDF/X-4**.
-- **XMP Metadata Injection:** Direct structural catalog updates ensure your documents trigger compliance flags in Adobe Acrobat.
+### 🍱 UI & Workflow Enhancements
+- **Intelligent Context Menus:** Actions like "Group Selected" and "Rotate" now dynamically disable based on your selection. Irrelevant options like "Expand/Collapse All" are now hidden in Grid View for a cleaner workspace.
+- **Robust Item Renaming:** Re-engineered renaming inputs to allow seamless text selection without triggering accidental drag operations.
+- **Visual Organization:**
+    - **Slate Gray Markers:** Single images and loose pages now default to a neutral gray marker, making it easy to spot standalone assets.
+    - **Selective Color Inheritance:** Grouped images now adopt the group’s color marker for consistency, while PDF pages retain their document colors to preserve their identity.
+- **Improved Grid Selection:** Fixed intermittent Shift+Click bugs in Grid View to ensure multi-selection always follows the visual order, even inside expanded containers.
 
 ### 🖼️ Expanded File Support
-- **Native .BMP Support:** You can now import and merge BMP image files alongside PDFs, JPGs, and PNGs.
-- **Unique Color Markers:** Expanded palette of **20 distinct marker colors**, making it effortless to identify pages from different source documents in the workspace.
+- **Native .BMP Support:** Import and merge BMP files alongside PDFs, JPGs, and PNGs.
+- **Expanded Palette:** Now features **20 distinct marker colors**, making it effortless to identify pages from different sources.
 
 ## ⚡ Technical Improvements
 - **Hybrid Merge Engine:** Leverages a custom integration of **PyMuPDF** for image optimization and **pypdf** for final structure and metadata integrity.

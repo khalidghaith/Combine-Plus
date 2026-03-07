@@ -96,7 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerModeBtn: document.getElementById('viewer-mode-btn'),
         viewerLoading: document.getElementById('viewer-loading'),
         viewerFilename: document.getElementById('viewer-filename'),
-        viewerCounter: document.getElementById('viewer-counter')
+        viewerCounter: document.getElementById('viewer-counter'),
+        itemContextMenu: document.getElementById('item-context-menu'),
+        bgContextMenu: document.getElementById('bg-context-menu')
     };
 
     // --- UI SETUP ---
@@ -896,6 +898,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 'bg-sky-50', 'bg-violet-50', 'bg-stone-50', 'bg-slate-50', 'bg-neutral-50'
             ];
             const colorIdx = state.items.length % colors.length;
+            const isSingle = pageCount === 1;
+            const defaultColor = isSingle ? 'bg-slate-400' : colors[colorIdx];
+            const defaultThumbBg = isSingle ? 'bg-slate-50' : thumbBgs[colorIdx];
 
             const newPages = [];
             for (let i = 0; i < pageCount; i++) {
@@ -907,8 +912,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     originalFileId: fileId,
                     originalIndex: i,
                     path: filePath,
-                    originalColor: colors[colorIdx],
-                    originalThumbBg: thumbBgs[colorIdx]
+                    originalColor: defaultColor,
+                    originalThumbBg: defaultThumbBg
                 });
             }
 
@@ -916,7 +921,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.items.push({
                     id: fileId, type: type, name: fileName, path: filePath,
                     expanded: true, isMultiPage: type === 'file',
-                    color: colors[colorIdx], thumbBg: thumbBgs[colorIdx],
+                    color: defaultColor, thumbBg: defaultThumbBg,
                     pages: newPages
                 });
             }
@@ -1378,6 +1383,13 @@ document.addEventListener('DOMContentLoaded', () => {
         state.lastSelectedId = null;
         pruneCache();
         render();
+    }
+
+    function hideContextMenus() {
+        dom.itemContextMenu.classList.add('hidden');
+        dom.bgContextMenu.classList.add('hidden');
+        const listCtx = document.getElementById('list-context-menu');
+        if (listCtx) listCtx.classList.add('hidden');
     }
 
     // --- VIEWER LOGIC ---
@@ -2885,6 +2897,199 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     render();
     updateToolbarState();
+
+    // --- CONTEXT MENU LOGIC ---
+    dom.window.oncontextmenu = function (e) {
+        e.preventDefault();
+        hideContextMenus();
+
+        const itemEl = e.target.closest('.selectable-item');
+        if (itemEl) {
+            const id = itemEl.dataset.id;
+            if (!state.selected.has(id)) {
+                state.selected.clear();
+                state.selected.add(id);
+                state.lastSelectedId = id;
+                updateSelectionVisuals();
+            }
+
+            const menu = dom.itemContextMenu;
+            menu.classList.remove('hidden');
+            const menuWidth = menu.offsetWidth || 176;
+            const menuHeight = menu.offsetHeight || 200;
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuWidth > window.innerWidth) x -= menuWidth;
+            if (y + menuHeight > window.innerHeight) y -= menuHeight;
+
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            const groupBtn = document.getElementById('ctx-group-btn');
+            if (groupBtn) groupBtn.disabled = state.selected.size < 2;
+
+            const rotateBtn = document.getElementById('ctx-rotate-btn');
+            if (rotateBtn) {
+                let hasPdfFile = false;
+                state.selected.forEach(id => {
+                    const item = state.items.find(i => i.id === id);
+                    if (item && item.type !== 'img') hasPdfFile = true;
+                });
+                rotateBtn.disabled = hasPdfFile;
+            }
+        } else {
+            const menu = dom.bgContextMenu;
+            menu.classList.remove('hidden');
+            let x = e.clientX;
+            let y = e.clientY;
+            const menuWidth = menu.offsetWidth || 176;
+            const menuHeight = menu.offsetHeight || 150;
+
+            if (x + menuWidth > window.innerWidth) x -= menuWidth;
+            if (y + menuHeight > window.innerHeight) y -= menuHeight;
+
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+
+            const undoBtn = document.getElementById('ctx-undo-btn');
+            if (undoBtn) undoBtn.disabled = state.history.length <= 1;
+
+            const expandBtn = document.getElementById('ctx-expand-all-btn');
+            const collapseBtn = document.getElementById('ctx-collapse-all-btn');
+            const expandSep = document.getElementById('ctx-expand-sep');
+            const isGridView = state.view === 'grid';
+            if (expandBtn) expandBtn.classList.toggle('hidden', isGridView);
+            if (collapseBtn) collapseBtn.classList.toggle('hidden', isGridView);
+            if (expandSep) expandSep.classList.toggle('hidden', isGridView);
+        }
+    };
+
+    // --- GROUPING LOGIC ---
+    window.groupSelected = function () {
+        if (state.selected.size < 2) return;
+        saveState();
+
+        const idsToGroup = new Set(state.selected);
+        const pagesToGroup = [];
+        let firstIdx = state.items.length;
+
+        for (let i = state.items.length - 1; i >= 0; i--) {
+            const item = state.items[i];
+            if (idsToGroup.has(item.id)) {
+                pagesToGroup.unshift(...item.pages);
+                state.items.splice(i, 1);
+                firstIdx = Math.min(firstIdx, i);
+            } else if (item.pages) {
+                for (let j = item.pages.length - 1; j >= 0; j--) {
+                    if (idsToGroup.has(item.pages[j].id)) {
+                        pagesToGroup.unshift(item.pages.splice(j, 1)[0]);
+                        firstIdx = Math.min(firstIdx, i);
+                    }
+                }
+            }
+        }
+
+        if (pagesToGroup.length > 0) {
+            const existingColors = new Set(state.items.map(i => i.color));
+            const availableColors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-rose-500'];
+            let unusedColors = availableColors.filter(c => !existingColors.has(c));
+            if (unusedColors.length === 0) unusedColors = availableColors;
+            const newColor = unusedColors[Math.floor(Math.random() * unusedColors.length)];
+            const newThumbBg = newColor.replace('-500', '-50');
+
+            // Apply new color ONLY to images (as requested)
+            pagesToGroup.forEach(p => {
+                if (p.type === 'img') {
+                    p.originalColor = newColor;
+                    p.originalThumbBg = newThumbBg;
+                }
+            });
+
+            const newContainer = {
+                id: 'group_' + Date.now(),
+                type: 'file',
+                name: 'New Grouped PDF.pdf',
+                expanded: true,
+                isMultiPage: true,
+                color: newColor,
+                thumbBg: newThumbBg,
+                pages: pagesToGroup
+            };
+            state.items.splice(firstIdx, 0, newContainer);
+            state.selected.clear();
+            state.selected.add(newContainer.id);
+            state.lastSelectedId = newContainer.id;
+            render();
+            hideContextMenus();
+        }
+    };
+
+    // --- RENAMING LOGIC ---
+    window.renameSelected = function () {
+        if (state.selected.size === 0) return;
+        const id = state.lastSelectedId || Array.from(state.selected)[0];
+        window.startRenaming(id);
+    };
+
+    window.startRenaming = function (id) {
+        const item = findPageObject(id);
+        if (!item) return;
+
+        // Find the active view container
+        const activeContainer = state.view === 'grid' ? dom.gridView : dom.listView;
+        const itemEl = activeContainer.querySelector(`[data-id="${id}"]`);
+        if (!itemEl) return;
+
+        const nameEl = itemEl.querySelector('.item-name');
+        if (!nameEl) return;
+
+        const oldName = item.name;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = oldName;
+        // Fix for selection issues: prevent drag interference
+        input.draggable = false;
+        input.className = "w-full px-1 py-0.5 text-sm bg-white dark:bg-gray-700 border border-blue-500 rounded outline-none text-[var(--text-main)]";
+
+        const stopProps = (e) => {
+            e.stopPropagation();
+            if (e.type === 'mousedown' || e.type === 'dragstart') {
+                // Prevent drag initiation when clicking/selecting text
+                itemEl.draggable = false;
+            }
+        };
+        input.addEventListener('mousedown', stopProps);
+        input.addEventListener('mouseup', stopProps);
+        input.addEventListener('click', stopProps);
+        input.addEventListener('dragstart', stopProps);
+
+        const commit = () => {
+            const newName = input.value.trim();
+            if (newName && newName !== oldName) {
+                saveState();
+                item.name = newName;
+                render();
+            } else {
+                nameEl.innerText = oldName;
+            }
+            itemEl.draggable = true;
+        };
+
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') commit();
+            if (e.key === 'Escape') {
+                nameEl.innerText = oldName;
+                itemEl.draggable = true;
+            }
+        };
+        input.onblur = commit;
+
+        nameEl.innerHTML = '';
+        nameEl.appendChild(input);
+        input.focus();
+        input.select();
+    };
 
     // Check for updates silently shortly after launch
     setTimeout(() => window.checkForUpdates(false), 2000);

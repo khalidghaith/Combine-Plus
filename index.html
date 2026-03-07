@@ -231,29 +231,7 @@
                             multiple source files.</p>
                     </div>
 
-                    <!-- PDF Format -->
-                    <div>
-                        <label class="text-xs font-semibold text-[var(--text-sub)] mb-1 block">Output Format</label>
-                        <select id="export-format"
-                            class="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-[var(--bg-container)] text-sm cursor-pointer">
-                            <option value="pdf">Standard PDF</option>
-                            <option value="pdfa-1a">PDF/A-1a</option>
-                            <option value="pdfa-1b">PDF/A-1b</option>
-                            <option value="pdfa-2a">PDF/A-2a</option>
-                            <option value="pdfa-2b">PDF/A-2b</option>
-                            <option value="pdfa-2u">PDF/A-2u</option>
-                            <option value="pdfa-3a">PDF/A-3a</option>
-                            <option value="pdfa-3b">PDF/A-3b</option>
-                            <option value="pdfa-3u">PDF/A-3u</option>
-                            <option value="pdfa-4">PDF/A-4</option>
-                            <option value="pdfa-4e">PDF/A-4e</option>
-                            <option value="pdfa-4f">PDF/A-4f</option>
-                            <option value="pdfa-auto">Auto PDF/A Conformance</option>
-                            <option value="pdfx-1a">PDF/X-1a</option>
-                            <option value="pdfx-3">PDF/X-3</option>
-                            <option value="pdfx-4">PDF/X-4</option>
-                        </select>
-                    </div>
+
 
                     <!-- Optimization Settings -->
                     <div class="pt-4 border-t border-[var(--border)]">
@@ -324,6 +302,36 @@
             </div>
         </div>
 
+        <!-- Conversion Report Modal -->
+        <div id="report-modal"
+            class="modal-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-black/50 hidden">
+            <div
+                class="modal-content bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-xl w-[600px] max-w-full flex flex-col max-h-[80vh]">
+                <div class="p-4 border-b border-[var(--border)] flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-file-contract text-orange-500 text-xl"></i>
+                        <h3 class="text-lg font-bold text-[var(--color)]">Conversion Report</h3>
+                    </div>
+                    <button onclick="closeReportModal()"
+                        class="text-[var(--text-sub)] hover:text-red-500 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div id="report-body" class="p-6 overflow-y-auto flex-1 space-y-4 font-sans text-sm">
+                    <!-- Dynamic content here -->
+                </div>
+
+                <div
+                    class="p-4 border-t border-[var(--border)] flex justify-end gap-3 bg-[var(--bg-container)] rounded-b-xl">
+                    <button onclick="closeReportModal()"
+                        class="px-6 py-2 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white shadow-md transition-all active:scale-95">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Main Content Area -->
         <div id="main-scroll" class="flex-1 overflow-y-auto relative p-8">
 
@@ -369,16 +377,52 @@
 
     </div>
 
-    <!-- Custom Context Menu for List View -->
-    <div id="list-context-menu"
-        class="absolute z-50 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 hidden w-40">
-        <button onclick="expandAllToggles()"
+    <!-- Context Menu for Items (Grid & List) -->
+    <div id="item-context-menu"
+        class="absolute z-[300] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 hidden w-44">
+        <button onclick="groupSelected()" id="ctx-group-btn"
+            class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fas fa-object-group w-4 text-center text-[var(--text-sub)]"></i> Group Selected
+        </button>
+        <button onclick="renameSelected()"
+            class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2">
+            <i class="fas fa-edit w-4 text-center text-[var(--text-sub)]"></i> Rename
+        </button>
+        <div class="h-px bg-[var(--border)] my-1"></div>
+        <button onclick="duplicateSelected()"
+            class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2">
+            <i class="fas fa-clone w-4 text-center text-[var(--text-sub)]"></i> Duplicate
+        </button>
+        <button onclick="rotateSelected()" id="ctx-rotate-btn"
+            class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fas fa-redo-alt w-4 text-center text-[var(--text-sub)]"></i> Rotate 90°
+        </button>
+        <div class="h-px bg-[var(--border)] my-1"></div>
+        <button onclick="deleteSelected()"
+            class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 flex items-center gap-2">
+            <i class="fas fa-trash-alt w-4 text-center"></i> Delete
+        </button>
+    </div>
+
+    <!-- Background Context Menu -->
+    <div id="bg-context-menu"
+        class="absolute z-50 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg shadow-xl py-1 hidden w-44">
+        <button onclick="handleAddFiles()"
+            class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2">
+            <i class="fas fa-plus w-4 text-center text-[var(--text-sub)]"></i> Add Files
+        </button>
+        <div class="h-px bg-[var(--border)] my-1" id="ctx-expand-sep"></div>
+        <button onclick="expandAllToggles()" id="ctx-expand-all-btn"
             class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2">
             <i class="fas fa-expand-arrows-alt w-4 text-center text-[var(--text-sub)]"></i> Expand All
         </button>
-        <button onclick="collapseAllToggles()"
+        <button onclick="collapseAllToggles()" id="ctx-collapse-all-btn"
             class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2">
             <i class="fas fa-compress-arrows-alt w-4 text-center text-[var(--text-sub)]"></i> Collapse All
+        </button>
+        <button onclick="undo()" id="ctx-undo-btn"
+            class="w-full text-left px-4 py-2 text-sm text-[var(--text-main)] hover:bg-[var(--hover-bg)] flex items-center gap-2 disabled:opacity-30">
+            <i class="fas fa-undo w-4 text-center text-[var(--text-sub)]"></i> Undo
         </button>
     </div>
 
