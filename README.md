@@ -83,6 +83,7 @@ Speed up your workflow with these hotkeys:
   - Ctrl + V (Cmd + V): Paste files or images from clipboard.
   - Ctrl + A (Cmd + A): Select all items.
   - Delete / Backspace: Remove selected items.
+  - Ctrl + G (Cmd + G): Group selected items.
 
 * Navigation:
   - Arrow Keys: Navigate through the item list.

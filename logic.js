@@ -551,6 +551,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Ctrl + G > Group Selected
+        if (e.ctrlKey && e.key.toLowerCase() === 'g') {
+            e.preventDefault();
+            groupSelected();
+            return;
+        }
+
         // Ctrl + Arrows > Move page to next or previous
         if (e.ctrlKey && e.key.startsWith('Arrow')) {
             e.preventDefault();
@@ -605,6 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('click', (e) => {
+        hideContextMenus();
         if (!dom.settingsModal.classList.contains('hidden')) {
             if (!dom.settingsModal.contains(e.target) && !document.getElementById('btn-settings').contains(e.target)) {
                 dom.settingsModal.classList.add('hidden');
@@ -620,12 +628,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.getElementById('btn-about');
             if (!am.contains(e.target) && (!btn || !btn.contains(e.target))) {
                 am.classList.add('hidden');
-            }
-        }
-        const listCtx = document.getElementById('list-context-menu');
-        if (listCtx && !listCtx.classList.contains('hidden')) {
-            if (!listCtx.contains(e.target)) {
-                listCtx.classList.add('hidden');
             }
         }
     });
@@ -987,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Gather options
         const exportOptions = {
             mode: document.getElementById('export-mode').value,
-            format: document.getElementById('export-format').value,
+            format: document.getElementById('export-format')?.value || 'pdf',
             optimize: document.getElementById('export-optimize-chk').checked,
             triggerDpi: parseInt(document.getElementById('opt-trigger-dpi').value) || 300,
             targetDpi: parseInt(document.getElementById('opt-target-dpi').value) || 150
@@ -1275,6 +1277,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (changed) render();
         else { state.history.pop(); updateToolbarState(); }
+    }
+
+    window.duplicateSelected = function () {
+        if (state.selected.size > 0) duplicateItem(state.lastSelectedId);
     }
 
     window.revertPage = function (pageId, e) {
@@ -2310,7 +2316,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            header.innerHTML = `${chevron}${thumbContent}<div class="flex-1 font-medium text-sm text-[var(--text-sub)] min-w-0 truncate">${item.name}</div>${actionsContainer}`;
+            header.innerHTML = `${chevron}${thumbContent}<div class="flex-1 font-medium text-sm text-[var(--text-sub)] min-w-0 truncate item-name">${item.name}</div>${actionsContainer}`;
             header.onclick = (e) => handleItemClick(e, headerId);
             // Add double click to open viewer (if it's a single page item)
             if (!item.isMultiPage && item.pages.length === 1) {
@@ -2335,7 +2341,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         childRevert = `<button onclick="revertPage('${page.id}', event)" title="Revert" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-reply text-xs"></i></button>`;
                     }
                     const childRotText = `<span class="text-[10px] text-[var(--text-sub)] font-mono ml-1">${page.rot}°</span>`;
-                    row.innerHTML = `<div class="w-2 h-2 rounded-full ${page.originalColor || item.color}"></div><span class="text-sm text-[var(--text-sub)] flex-1 truncate">${page.name}</span><div class="flex items-center gap-2" ondblclick="event.stopPropagation()">${childRevert}<button onclick="duplicateItem('${page.id}', event)" title="Duplicate" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-clone text-xs"></i></button>${childRotText}<button onclick="rotatePage('${page.id}', event)" title="Rotate 90°" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-redo-alt text-xs"></i></button></div>`;
+                    row.innerHTML = `<div class="w-2 h-2 rounded-full ${page.originalColor || item.color}"></div><span class="text-sm text-[var(--text-sub)] flex-1 truncate item-name">${page.name}</span><div class="flex items-center gap-2" ondblclick="event.stopPropagation()">${childRevert}<button onclick="duplicateItem('${page.id}', event)" title="Duplicate" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-clone text-xs"></i></button>${childRotText}<button onclick="rotatePage('${page.id}', event)" title="Rotate 90°" class="w-6 h-6 rounded-full hover:bg-black/10 flex items-center justify-center text-[var(--text-sub)]"><i class="fas fa-redo-alt text-xs"></i></button></div>`;
                     row.onclick = (e) => { e.stopPropagation(); handleItemClick(e, page.id); };
                     // Add double click to open viewer
                     row.ondblclick = (e) => { e.stopPropagation(); openViewer(page.id); };
@@ -2628,7 +2634,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetMarkers() { dom.markerV.classList.add('hidden'); dom.markerH.classList.add('hidden'); }
 
     // --- KEYBOARD HELPER FUNCTIONS ---
-    function rotateSelected() {
+    window.rotateSelected = function () {
         if (state.selected.size === 0) return;
         saveState();
         let changed = false;
@@ -2931,12 +2937,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const rotateBtn = document.getElementById('ctx-rotate-btn');
             if (rotateBtn) {
-                let hasPdfFile = false;
-                state.selected.forEach(id => {
-                    const item = state.items.find(i => i.id === id);
-                    if (item && item.type !== 'img') hasPdfFile = true;
-                });
-                rotateBtn.disabled = hasPdfFile;
+                if (state.view === 'list') {
+                    rotateBtn.classList.add('hidden');
+                } else {
+                    rotateBtn.classList.remove('hidden');
+                    let hasPdfFile = false;
+                    state.selected.forEach(id => {
+                        const item = state.items.find(i => i.id === id);
+                        if (item && item.type !== 'img') hasPdfFile = true;
+                    });
+                    rotateBtn.disabled = hasPdfFile;
+                }
             }
         } else {
             const menu = dom.bgContextMenu;
