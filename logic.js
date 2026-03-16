@@ -88,8 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
         resetModal: document.getElementById('reset-modal'),
         messageModal: document.getElementById('message-modal'),
         fileInput: document.getElementById('file-input'),
-        // Viewer DOM
         viewerModal: document.getElementById('viewer-modal'),
+        viewerContentWrapper: document.getElementById('viewer-content-wrapper'),
         viewerContent: document.getElementById('viewer-content'),
         viewerViewport: document.getElementById('viewer-viewport'),
         viewerScaleInput: document.getElementById('viewer-scale-input'),
@@ -462,6 +462,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key.toLowerCase() === 'w') { e.preventDefault(); viewerFitToWidth(); }
             if (e.key.toLowerCase() === 'f') { e.preventDefault(); viewerFitPage(); }
             if ((e.key === '0' || e.key === 'Numpad0') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setViewerScale(1.0); }
+
+            // Delete annotation if selected
+            if ((e.key === 'Delete' || e.key === 'Backspace')) {
+                if (window.annotDeleteSelected) window.annotDeleteSelected();
+            }
+
+            // Undo / Redo for Annotations
+            if ((e.ctrlKey || e.metaKey)) {
+                if (e.key.toLowerCase() === 'z') { e.preventDefault(); if (window.annotUndo) window.annotUndo(); return; }
+                if (e.key.toLowerCase() === 'y') { e.preventDefault(); if (window.annotRedo) window.annotRedo(); return; }
+            }
             return; // Block other shortcuts when viewer is open
         }
 
@@ -1013,8 +1024,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const exportList = [];
                 state.items.forEach(item => {
-                    // For batch logic later in python, it might be useful to group by top-level item.
-                    // For now, we'll maintain the exact same structure but inject top-level info.
                     if (item.pages) {
                         item.pages.forEach(p => {
                             exportList.push({
@@ -1022,8 +1031,24 @@ document.addEventListener('DOMContentLoaded', () => {
                                 originalIndex: p.originalIndex,
                                 rot: p.rot,
                                 type: p.type,
-                                parentName: item.name // useful for batch
+                                parentName: item.name,
+                                id: p.id
                             });
+                        });
+                    }
+                });
+
+                // Collect annotation overlays for all pages
+                if (state.viewer.isOpen && typeof window.saveCurrentPageAnnotations === 'function') {
+                    window.saveCurrentPageAnnotations();
+                }
+                let annotationOverlays = {};
+                state.items.forEach(item => {
+                    if (item.pages) {
+                        item.pages.forEach(p => {
+                            if (p.annotationData) {
+                                annotationOverlays[p.id] = p.annotationData;
+                            }
                         });
                     }
                 });
@@ -1046,13 +1071,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     outputPath: savePath,
                     metadata,
                     resizeToFit: state.resizeToFit,
-                    exportOptions // pass the new options
+                    exportOptions,
+                    annotationOverlay: annotationOverlays // pass annotation image overlays to backend
                 });
 
                 if (result.success) {
+                    let hasIssues = false;
+                    let msg = '';
                     if (result.failedFiles && result.failedFiles.length > 0) {
-                        const list = result.failedFiles.map(f => `• ${f}`).join('\n');
-                        showMessageModal('Completed with Issues', `Saved successfully, but the following files were skipped due to errors (e.g., encryption):\n${list}`, true);
+                        msg += `The following files were skipped due to errors:\n${result.failedFiles.map(f => '• ' + f).join('\n')}\n\n`;
+                        hasIssues = true;
+                    }
+                    if (result.report && result.report.errors && result.report.errors.length > 0) {
+                        msg += `Annotation Errors:\n${result.report.errors.map(e => '• ' + e).join('\n')}\n\n`;
+                        hasIssues = true;
+                    }
+
+                    if (hasIssues) {
+                        showMessageModal('Completed with Issues', msg.trim(), true);
                     } else {
                         showMessageModal('Success', 'File(s) saved successfully.', false);
                     }
@@ -1245,6 +1281,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     ...p, id: 'copy_p_' + Date.now() + Math.random().toString(36).substr(2, 5) + '_' + Math.random().toString(36).substr(2, 3),
                     originalFileId: newItemId
                 }));
+                newPages.forEach((p, idx) => {
+                    if (originalItem.pages[idx].annotationData) p.annotationData = JSON.parse(JSON.stringify(originalItem.pages[idx].annotationData));
+                });
                 const newItem = { ...originalItem, id: newItemId, pages: newPages };
                 state.items.splice(itemIdx + 1, 0, newItem);
                 changed = true;
@@ -1262,12 +1301,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             ...p, id: 'copy_p_' + Date.now() + Math.random().toString(36).substr(2, 5) + '_' + Math.random().toString(36).substr(2, 3),
                             originalFileId: newItemId
                         }));
+                        newPages.forEach((p, index) => {
+                            if (originalItem.pages[index].annotationData) p.annotationData = JSON.parse(JSON.stringify(originalItem.pages[index].annotationData));
+                        });
                         const newItem = { ...originalItem, id: newItemId, pages: newPages };
                         state.items.splice(i + 1, 0, newItem);
                         changed = true;
                     } else {
                         const originalPage = item.pages[pageIdx];
                         const newPage = { ...originalPage, id: 'copy_p_' + Date.now() + Math.random().toString(36).substr(2, 5) };
+                        if (originalPage.annotationData) newPage.annotationData = JSON.parse(JSON.stringify(originalPage.annotationData));
                         item.pages.splice(pageIdx + 1, 0, newPage);
                         changed = true;
                     }
@@ -1437,9 +1480,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.closeViewer = function () {
+    window.closeViewer = function (force) {
+        const isForce = force === true;
+        if (!isForce && typeof window.hasAnnotationsChanged === 'function' && window.hasAnnotationsChanged()) {
+            if (confirm("You have unsaved annotations. Are you sure you want to close without saving?")) {
+                window.closeViewer(true);
+            }
+            return;
+        }
         state.viewer.isOpen = false;
         dom.viewerModal.classList.add('opacity-0');
+        // Notify annotation canvas to reset
+        window.dispatchEvent(new CustomEvent('viewerClosed'));
         setTimeout(() => {
             dom.viewerModal.classList.add('hidden');
             dom.viewerContent.innerHTML = '';
@@ -1516,28 +1568,72 @@ document.addEventListener('DOMContentLoaded', () => {
         if (viewerPage) {
             // Calculate new dimensions immediately for smooth zooming
             const rotation = ((viewerPage.rotate || 0) + (state.viewer.rotation || 0)) % 360;
-            const viewport = viewerPage.getViewport({ scale: s, rotation: rotation });
-            dom.viewerContent.style.width = `${viewport.width}px`;
-            dom.viewerContent.style.height = `${viewport.height}px`;
-            dom.viewerContent.style.maxWidth = 'none';
-            dom.viewerContent.style.maxHeight = 'none';
-            dom.viewerContent.style.minWidth = '0';
-            dom.viewerContent.style.minHeight = '0';
-            dom.viewerContent.style.flexShrink = '0';
+            const cssViewport = viewerPage.getViewport({ scale: s, rotation: rotation });
+            dom.viewerContentWrapper.style.width = `${cssViewport.width}px`;
+            dom.viewerContentWrapper.style.height = `${cssViewport.height}px`;
 
             // Canvas is 100% w/h so it auto-resizes with container
+            dom.viewerContent.style.width = `100%`;
+            dom.viewerContent.style.height = `100%`;
+
+            // *** IMMEDIATELY notify the annotation canvas to resize & re-render ***
+            // This prevents the CSS-stretch artifact where the old canvas buffer is
+            // scaled by the browser to fill the new container size during the debounce window.
+            window.dispatchEvent(new CustomEvent('viewerRendered', {
+                detail: {
+                    width: cssViewport.width,
+                    height: cssViewport.height,
+                    unscaledW: viewerBaseDims.w,
+                    unscaledH: viewerBaseDims.h,
+                    scale: s,
+                    rotation: rotation,
+                    pageId: state.viewer.pageId
+                }
+            }));
 
             if (state.viewer.renderDebounce) clearTimeout(state.viewer.renderDebounce);
             state.viewer.renderDebounce = setTimeout(() => {
                 renderViewerCanvas();
-            }, 100);
+                // renderViewerCanvas fires its own viewerRendered when the PDF render
+                // completes - that will do a final correction pass on the annotation canvas.
+            }, 150);
         } else {
             const img = dom.viewerContent.querySelector('img');
-            if (img) renderViewerImage(img);
+            if (img) {
+                const rotation = state.viewer.rotation || 0;
+                const isRotated = rotation % 180 !== 0;
+                const imgW = viewerBaseDims.w * s;
+                const imgH = viewerBaseDims.h * s;
+                const containerW = isRotated ? imgH : imgW;
+                const containerH = isRotated ? imgW : imgH;
+
+                dom.viewerContentWrapper.style.width = `${containerW}px`;
+                dom.viewerContentWrapper.style.height = `${containerH}px`;
+                dom.viewerContent.style.width = `100%`;
+                dom.viewerContent.style.height = `100%`;
+
+                renderViewerImage(img);
+                window.dispatchEvent(new CustomEvent('viewerRendered', {
+                    detail: {
+                        width: containerW,
+                        height: containerH,
+                        unscaledW: viewerBaseDims.w,
+                        unscaledH: viewerBaseDims.h,
+                        scale: s,
+                        rotation: rotation,
+                        pageId: state.viewer.pageId
+                    }
+                }));
+            }
         }
     }
 
     function updateViewerCursor() {
+        if (typeof AnnotationState !== 'undefined' && AnnotationState.currentActiveTool !== 'POINTER') {
+            dom.viewerViewport.style.cursor = 'crosshair';
+            return;
+        }
+
         if (state.viewer.tool === 'pan') {
             dom.viewerViewport.style.cursor = 'grab';
         } else if (state.viewer.tool === 'region') {
@@ -1564,7 +1660,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Apply floating capsule styles
-        toolbar.className = "absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-full z-50 transition-all hover:scale-105 text-[var(--text-main)]";
+        toolbar.className = "absolute top-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-2xl rounded-full z-[300] transition-all text-[var(--text-main)]";
         toolbar.innerHTML = '';
 
         // Page Counter
@@ -1622,6 +1718,15 @@ document.addEventListener('DOMContentLoaded', () => {
         btnFitPage.title = "Fit Page (F)";
         toolbar.appendChild(btnFitPage);
 
+        const btnAnnotate = document.createElement('button');
+        btnAnnotate.className = "w-8 h-8 rounded-full hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center transition-colors text-[var(--text-sub)] ml-2";
+        btnAnnotate.innerHTML = '<i class="fas fa-paint-brush"></i>';
+        btnAnnotate.title = "Annotate";
+        btnAnnotate.onclick = () => {
+            if (window.toggleAnnotationMode) window.toggleAnnotationMode(true);
+        };
+        toolbar.appendChild(btnAnnotate);
+
         const btnClose = document.createElement('button');
         btnClose.className = "w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm ml-2";
         btnClose.innerHTML = '<i class="fas fa-times"></i>';
@@ -1632,7 +1737,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.viewerPrevPage = function () { navigateViewer(-1); }
     window.viewerNextPage = function () { navigateViewer(1); }
 
-    async function navigateViewer(dir) {
+    async function navigateViewer(dir, force) {
+        const isForce = force === true;
         // Flatten all pages into a single list for navigation
         const allPages = [];
         state.items.forEach(item => {
@@ -1642,8 +1748,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentIdx = allPages.findIndex(p => p.id === state.viewer.pageId);
         if (currentIdx === -1) return;
 
+        if (!isForce && typeof window.hasAnnotationsChanged === 'function' && window.hasAnnotationsChanged()) {
+            if (confirm("You have unsaved annotations. Are you sure you want to change pages without saving?")) {
+                navigateViewer(dir, true);
+            }
+            return;
+        }
+
         const newIdx = currentIdx + dir;
         if (newIdx >= 0 && newIdx < allPages.length) {
+            // Notify annotation canvas that page is changing (clears per-page annotations)
+            window.dispatchEvent(new CustomEvent('viewerPageChanged'));
             state.viewer.pageId = allPages[newIdx].id;
             state.viewer.rotation = allPages[newIdx].rot;
             await loadAndRenderViewer();
@@ -1696,7 +1811,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.className = "select-none pointer-events-none block";
                 await img.decode();
                 viewerBaseDims = { w: img.naturalWidth, h: img.naturalHeight };
+
+                const rotation = state.viewer.rotation || 0;
+                const isRotated = rotation % 180 !== 0;
+                const imgW = viewerBaseDims.w * state.viewer.scale;
+                const imgH = viewerBaseDims.h * state.viewer.scale;
+                const containerW = isRotated ? imgH : imgW;
+                const containerH = isRotated ? imgW : imgH;
+
+                dom.viewerContentWrapper.style.width = `${containerW}px`;
+                dom.viewerContentWrapper.style.height = `${containerH}px`;
+                dom.viewerContent.style.width = `100%`;
+                dom.viewerContent.style.height = `100%`;
+
                 renderViewerImage(img);
+                window.dispatchEvent(new CustomEvent('viewerRendered', {
+                    detail: {
+                        width: containerW,
+                        height: containerH,
+                        unscaledW: viewerBaseDims.w,
+                        unscaledH: viewerBaseDims.h,
+                        scale: state.viewer.scale,
+                        rotation: rotation,
+                        pageId: state.viewer.pageId
+                    }
+                }));
             }
         } catch (e) {
             console.error("Viewer Error:", e);
@@ -1729,11 +1868,11 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.viewerContent.style.height = `${cssViewport.height}px`;
         dom.viewerContent.style.maxWidth = 'none';
         dom.viewerContent.style.maxHeight = 'none';
-        dom.viewerContent.style.minWidth = '0';
-        dom.viewerContent.style.minHeight = '0';
-        dom.viewerContent.style.flexShrink = '0';
-        dom.viewerContent.style.position = 'relative';
-        dom.viewerContent.style.margin = 'auto';
+        dom.viewerContentWrapper.style.minWidth = '0';
+        dom.viewerContentWrapper.style.minHeight = '0';
+        dom.viewerContentWrapper.style.flexShrink = '0';
+        dom.viewerContentWrapper.style.position = 'relative';
+        dom.viewerContentWrapper.style.margin = 'auto';
 
         // Double buffering: Create new canvas, render, then swap
         const canvas = document.createElement('canvas');
@@ -1750,16 +1889,44 @@ document.addEventListener('DOMContentLoaded', () => {
             viewport: renderViewport
         };
 
+        // Capture scale & rotation at render-START time so the completion callback uses
+        // the correct values even if the user zooms again during the async render.
+        const capturedScale = state.viewer.scale;
+        const capturedPageId = state.viewer.pageId;
+
         viewerRenderTask = viewerPage.render(renderContext);
         viewerRenderTask.promise.then(() => {
             dom.viewerLoading.classList.add('hidden');
             viewerRenderTask = null;
 
-            // Append new canvas and remove old content (old canvases or images)
+            // Append new canvas and remove old content
             dom.viewerContent.appendChild(canvas);
             Array.from(dom.viewerContent.children).forEach(child => {
                 if (child !== canvas) child.remove();
             });
+
+            // Fire viewerRendered with the CAPTURED scale (not current state.viewer.scale).
+            // This ensures the annotation canvas matches the PDF that was actually rendered.
+            // If the user has already zoomed to a new scale, the immediate dispatch from
+            // setViewerScale has already updated the annotation canvas to the new scale,
+            // so we should NOT override it with the stale render's scale.
+            if (capturedScale === state.viewer.scale) {
+                const capturedRotation = ((viewerPage.rotate || 0) + (state.viewer.rotation || 0)) % 360;
+                const finalVP = viewerPage.getViewport({ scale: capturedScale, rotation: capturedRotation });
+                window.dispatchEvent(new CustomEvent('viewerRendered', {
+                    detail: {
+                        width: finalVP.width,
+                        height: finalVP.height,
+                        unscaledW: viewerBaseDims.w,
+                        unscaledH: viewerBaseDims.h,
+                        scale: capturedScale,
+                        rotation: capturedRotation,
+                        pageId: capturedPageId
+                    }
+                }));
+            }
+            // If scale has changed, the annotation canvas is already up-to-date from
+            // the immediate dispatch in setViewerScale — no action needed.
         }).catch(() => { });
     }
 
@@ -1805,6 +1972,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Viewer Panning (Drag and Drop style)
     dom.viewerViewport.addEventListener('mousedown', (e) => {
         if (!state.viewer.isOpen) return;
+
+        // Let the annotation canvas handle events if a drawing tool is active
+        if (typeof AnnotationState !== 'undefined' && AnnotationState.currentActiveTool !== 'POINTER') return;
+
         e.preventDefault();
 
         if (state.viewer.tool === 'pan') {
@@ -1825,6 +1996,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     dom.viewerViewport.addEventListener('mouseleave', () => {
+        if (typeof AnnotationState !== 'undefined' && AnnotationState.currentActiveTool !== 'POINTER') return;
         if (state.viewer.isDragging) {
             state.viewer.isDragging = false;
             updateViewerCursor();
@@ -1836,6 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     dom.viewerViewport.addEventListener('mouseup', () => {
+        if (typeof AnnotationState !== 'undefined' && AnnotationState.currentActiveTool !== 'POINTER') return;
         if (state.viewer.isDragging) {
             state.viewer.isDragging = false;
             updateViewerCursor();
@@ -1885,6 +2058,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     dom.viewerViewport.addEventListener('mousemove', (e) => {
+        if (typeof AnnotationState !== 'undefined' && AnnotationState.currentActiveTool !== 'POINTER') return;
         if (state.viewer.isDragging) {
             e.preventDefault();
             dom.viewerViewport.style.cursor = 'grabbing';
@@ -2041,6 +2215,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     await Promise.race([renderPromise, timeoutPromise]);
 
                     const pageObj = findPageObject(pageId);
+
+                    if (pageObj && pageObj.annotationData && pageObj.annotationData.dataUrl) {
+                        try {
+                            const img = new Image();
+                            img.src = pageObj.annotationData.dataUrl;
+                            await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+
+                            const diffRot = ((pageObj.rot || 0) - (pageObj.annotationData.rotation || 0)) % 360;
+                            const normalizedDiff = diffRot < 0 ? diffRot + 360 : diffRot;
+
+                            context.save();
+                            context.translate(canvas.width / 2, canvas.height / 2);
+                            context.rotate((normalizedDiff * Math.PI) / 180);
+
+                            let drawW = canvas.width;
+                            let drawH = canvas.height;
+                            if (normalizedDiff === 90 || normalizedDiff === 270) {
+                                drawW = canvas.height;
+                                drawH = canvas.width;
+                            }
+
+                            context.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+                            context.restore();
+                        } catch (err) {
+                            console.error("Failed to apply annotation overlay to thumbnail", err);
+                        }
+                    }
+
                     if (pageObj) pageObj.thumbSrc = canvas.toDataURL();
                 } catch (error) {
                     const thumbContainer = canvas.parentElement;
@@ -2053,6 +2255,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const workers = Array.from({ length: CONCURRENT_LIMIT }, () => worker());
         await Promise.all(workers);
     }
+
+    window.getPageRotation = function (pageId) {
+        const page = findPageObject(pageId);
+        return page ? (page.rot || 0) : 0;
+    };
+
+    window.updatePageAnnotation = function (pageId, annotationData) {
+        const page = findPageObject(pageId);
+        if (page) {
+            const hasChanged = JSON.stringify(page.annotationData) !== JSON.stringify(annotationData);
+            if (hasChanged) {
+                saveState();
+                page.annotationData = annotationData;
+                page.thumbSrc = null;
+                render();
+            }
+        }
+    };
+
+    window.getPageAnnotation = function (pageId) {
+        const page = findPageObject(pageId);
+        return page ? page.annotationData : null;
+    };
 
     function findPageObject(id) {
         for (const item of state.items) {
@@ -2227,7 +2452,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (page.thumbSrc) {
             thumbContent = `<div class="w-full h-full flex items-center justify-center bg-gray-100"><img src="${page.thumbSrc}" alt="Page Thumbnail" class="w-full h-full object-contain" style="transform: none"></div>`;
         } else if (page.type === 'img') {
-            thumbContent = `<div class="w-full h-full flex items-center justify-center bg-gray-100"><img src="${page.path}" alt="Image File" class="w-full h-full object-contain" style="transform: rotate(${page.rot}deg)"></div>`;
+            const diffRot = page.annotationData ? ((page.rot || 0) - (page.annotationData.rotation || 0)) % 360 : 0;
+            const annotOverlay = (page.annotationData && page.annotationData.dataUrl)
+                ? `<img src="${page.annotationData.dataUrl}" class="absolute inset-0 w-full h-full object-contain pointer-events-none" style="transform: rotate(${diffRot}deg)">`
+                : '';
+            thumbContent = `<div class="w-full h-full flex items-center justify-center bg-gray-100 relative overflow-hidden">
+                <img src="${page.path}" alt="Image File" class="w-full h-full object-contain" style="transform: rotate(${page.rot}deg)">
+                ${annotOverlay}
+            </div>`;
         } else if (isPDF) {
             thumbContent = `<div class="w-full h-full flex items-center justify-center bg-white"><canvas class="pdf-thumb-pending w-full h-full object-contain" data-url="${page.path}" data-page-index="${page.originalIndex}" data-id="${page.id}"></canvas></div>`;
         } else {
@@ -2301,7 +2533,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 thumbContent = `<div class="w-8 h-8 rounded flex items-center justify-center bg-gray-100 overflow-hidden border border-[var(--border)] flex-shrink-0"><img src="${item.pages[0].thumbSrc}" alt="Page Thumbnail" class="w-full h-full object-contain" style="transform: none"></div>`;
             }
             else if (!item.isMultiPage && item.pages[0]?.type === 'img') {
-                thumbContent = `<div class="w-8 h-8 rounded flex items-center justify-center bg-gray-100 overflow-hidden border border-[var(--border)] flex-shrink-0"><img src="${item.pages[0].path}" alt="Image File" class="w-full h-full object-contain" style="transform: rotate(${item.pages[0].rot}deg)"></div>`;
+                const p = item.pages[0];
+                const diffRot = p.annotationData ? ((p.rot || 0) - (p.annotationData.rotation || 0)) % 360 : 0;
+                const annotOverlay = (p.annotationData && p.annotationData.dataUrl)
+                    ? `<img src="${p.annotationData.dataUrl}" class="absolute inset-0 w-full h-full object-contain pointer-events-none" style="transform: rotate(${diffRot}deg)">`
+                    : '';
+                thumbContent = `<div class="w-8 h-8 rounded flex items-center justify-center bg-gray-100 overflow-hidden border border-[var(--border)] flex-shrink-0 relative">
+                    <img src="${p.path}" alt="Image File" class="w-full h-full object-contain" style="transform: rotate(${p.rot}deg)">
+                    ${annotOverlay}
+                </div>`;
             }
             else {
                 const icon = item.type === 'img' ? 'fa-image' : 'fa-file-pdf';

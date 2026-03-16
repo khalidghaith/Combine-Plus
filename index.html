@@ -468,30 +468,322 @@
 
         <!-- Viewer Viewport -->
         <div id="viewer-viewport" class="flex-1 overflow-hidden relative flex p-8 cursor-grab active:cursor-grabbing">
-            <div id="viewer-content"
-                class="shadow-2xl transition-transform origin-center bg-white min-w-[100px] min-h-[100px] m-auto"></div>
+            <div id="viewer-content-wrapper" class="relative m-auto shadow-2xl min-w-[100px] min-h-[100px]">
+                <div id="viewer-content" class="bg-white w-full h-full"></div>
+                <!-- Interactive Drawing Canvas -->
+                <canvas id="annot-canvas" class="absolute pointer-events-none z-[100]"></canvas>
+            </div>
         </div>
 
         <!-- Navigation Overlay -->
         <button onclick="viewerPrevPage()"
-            class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-[var(--accent)] text-white/70 hover:text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-all transform hover:scale-110"><i
+            class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-[var(--accent)] text-white/70 hover:text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-all transform hover:scale-110 z-[300]"><i
                 class="fas fa-chevron-left"></i></button>
         <button onclick="viewerNextPage()"
-            class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-[var(--accent)] text-white/70 hover:text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-all transform hover:scale-110"><i
+            class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-[var(--accent)] text-white/70 hover:text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-all transform hover:scale-110 z-[300]"><i
                 class="fas fa-chevron-right"></i></button>
 
         <!-- Loading Indicator -->
         <div id="viewer-loading"
-            class="absolute inset-0 flex items-center justify-center bg-black/20 z-50 hidden pointer-events-none">
+            class="absolute inset-0 flex items-center justify-center bg-black/20 z-[350] hidden pointer-events-none">
             <div class="bg-black/80 text-white px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-md">
                 <i class="fas fa-circle-notch fa-spin text-xs"></i> <span
                     class="text-xs font-medium">Rendering...</span>
+            </div>
+        </div>
+
+        <!-- Annotation Toolbar -->
+        <div id="annotation-toolbar"
+            class="hidden absolute bottom-0 left-0 w-full bg-[var(--bg-secondary)] shadow-[0_-4px_20px_rgb(0,0,0,0.08)] px-4 py-3 items-center justify-center gap-4 border-t border-[var(--border)] z-[300] transition-transform duration-300 pointer-events-auto overflow-x-auto hide-scrollbar flex-nowrap">
+            <!-- Primary Tools -->
+            <div class="flex items-center gap-1 shrink-0">
+                <button id="tool-pointer" onclick="setActiveTool('POINTER')"
+                    class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[var(--hover-bg)] transition-colors bg-[var(--hover-bg)] text-[var(--accent)] annot-tool-btn"
+                    title="Pointer Tool"><i class="fas fa-mouse-pointer text-sm pointer-events-none"></i></button>
+                <button id="tool-pen" onclick="setActiveTool('PEN')"
+                    class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[var(--hover-bg)] transition-colors text-[var(--text-sub)] annot-tool-btn"
+                    title="Pen Tool"><i class="fas fa-pen text-sm pointer-events-none"></i></button>
+                <button id="tool-highlighter" onclick="setActiveTool('HIGHLIGHTER')"
+                    class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[var(--hover-bg)] transition-colors text-[var(--text-sub)] annot-tool-btn"
+                    title="Highlighter Tool"><i class="fas fa-marker text-sm pointer-events-none"></i></button>
+
+                <div class="relative" id="annot-eraser-container">
+                    <button id="tool-eraser" onclick="toggleEraserFlyout(event); setActiveTool('ERASER')"
+                        class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[var(--hover-bg)] transition-colors text-[var(--text-sub)] annot-tool-btn"
+                        title="Eraser Tool"><i class="fas fa-eraser text-sm pointer-events-none"></i></button>
+                    <!-- Eraser Flyout -->
+                    <div id="annot-eraser-flyout"
+                        class="fixed -translate-x-1/2 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-lg p-1 hidden w-36 z-[400]">
+                        <button onclick="setEraserMode('PIXEL')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="fas fa-eraser w-4 opacity-50"></i> Pixel Eraser</button>
+                        <button onclick="setEraserMode('OBJECT')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="fas fa-backspace w-4 opacity-50"></i> Object Eraser</button>
+                    </div>
+                </div>
+
+                <div class="relative" id="annot-text-container">
+                    <button id="tool-text"
+                        onclick="toggleTextFlyout(event); setActiveTool(AnnotationState.currentTextType)"
+                        class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[var(--hover-bg)] transition-colors text-[var(--text-sub)] annot-tool-btn"
+                        title="Text Tool"><i class="fas fa-font text-sm pointer-events-none"></i></button>
+                    <!-- Text Flyout -->
+                    <div id="annot-text-flyout"
+                        class="fixed -translate-x-1/2 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-lg p-1 hidden w-36 z-[400]">
+                        <button onclick="setTextType('TEXT')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="fas fa-font w-4 opacity-50 text-center"></i> Text Box</button>
+                        <button onclick="setTextType('TEXT_CALLOUT')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="fas fa-comment-dots w-4 opacity-50 text-center"></i> Callout</button>
+                    </div>
+                </div>
+
+                <div class="relative" id="annot-shapes-container">
+                    <button id="tool-shapes" onclick="toggleShapesFlyout(event); setActiveTool('SHAPES')"
+                        class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[var(--hover-bg)] transition-colors text-[var(--text-sub)] annot-tool-btn"
+                        title="Shapes Tool"><i class="fas fa-shapes text-sm pointer-events-none"></i></button>
+                    <!-- Shapes Flyout -->
+                    <div id="annot-shapes-flyout"
+                        class="fixed -translate-x-1/2 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-lg p-1 hidden w-32 z-[400]">
+                        <button onclick="setShapeType('LINE')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="fas fa-slash w-4 opacity-50 text-center"></i> Line</button>
+                        <button onclick="setShapeType('ARROW')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="fas fa-arrow-up w-4 opacity-50 transform rotate-45 text-center"></i>
+                            Arrow</button>
+                        <button onclick="setShapeType('POLYLINE')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="fas fa-draw-polygon w-4 opacity-50 text-center"></i> Polyline</button>
+                        <button onclick="setShapeType('RECTANGLE')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="far fa-square w-4 opacity-50 text-center"></i> Rectangle</button>
+                        <button onclick="setShapeType('ELLIPSE')"
+                            class="w-full text-left px-3 py-1.5 text-xs text-[var(--text-main)] hover:bg-[var(--hover-bg)] rounded flex items-center gap-2"><i
+                                class="far fa-circle w-4 opacity-50 text-center"></i> Ellipse</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-px h-6 bg-[var(--border)] mx-1 shrink-0"></div>
+
+            <!-- Secondary Properties Panel -->
+            <div id="annot-secondary-panel"
+                class="flex items-center gap-2 opacity-30 pointer-events-none transition-opacity shrink-0">
+                <!-- Stroke Properties -->
+                <div class="relative flex items-center justify-center w-7 h-7" id="annot-stroke-colors">
+                    <button id="annot-current-color-btn" onclick="toggleColorFlyout(event)"
+                        class="w-full h-full rounded-full border-2 border-[var(--bg-secondary)] shadow-md ring-1 ring-[var(--border)] relative flex items-center justify-center overflow-hidden"
+                        style="background-color: #EF4444;" title="Stroke Properties">
+                        <div class="absolute inset-[3px] rounded-full bg-[var(--bg-secondary)] pointer-events-none">
+                        </div>
+                        <div class="absolute w-[150%] h-[2px] bg-red-500 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-45 pointer-events-none"
+                            style="display: none;" id="annot-stroke-none-line"></div>
+                    </button>
+                    <!-- Stroke Flyout -->
+                    <div id="annot-color-flyout"
+                        class="fixed -translate-x-1/2 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-lg p-3 hidden w-40 z-[400]">
+
+                        <label
+                            class="text-[10px] font-semibold text-[var(--text-sub)] mb-1.5 block uppercase tracking-wider">Color</label>
+                        <div class="grid grid-cols-3 gap-2 mb-2">
+                            <button onclick="setAnnotColor('transparent')"
+                                class="w-6 h-6 rounded-full border border-[var(--border)] mx-auto hover:scale-110 transition-transform relative overflow-hidden bg-white"
+                                title="No Stroke">
+                                <div
+                                    class="absolute w-[150%] h-[2px] bg-red-500 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-45">
+                                </div>
+                            </button>
+                            <button onclick="setAnnotColor('#000000')"
+                                class="w-6 h-6 rounded-full bg-black border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotColor('#EF4444')"
+                                class="w-6 h-6 rounded-full bg-red-500 border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotColor('#3B82F6')"
+                                class="w-6 h-6 rounded-full bg-blue-500 border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotColor('#10B981')"
+                                class="w-6 h-6 rounded-full bg-green-500 border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotColor('#FBBF24')"
+                                class="w-6 h-6 rounded-full bg-yellow-400 border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotColor('#FFFFFF')"
+                                class="w-6 h-6 rounded-full bg-white border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                        </div>
+                        <div
+                            class="border-t border-[var(--border)] pt-2 relative w-full h-8 rounded overflow-hidden group/custom mb-3">
+                            <input type="color" onchange="setAnnotColor(this.value)" id="annot-color-picker"
+                                class="absolute -top-2 -left-2 w-[150%] h-[150%] cursor-pointer" value="#EF4444"
+                                title="Custom Color">
+                            <div
+                                class="absolute inset-0 pointer-events-none flex items-center justify-center text-xs font-semibold text-white mix-blend-difference group-hover/custom:scale-105 transition-transform">
+                                Custom</div>
+                        </div>
+
+                        <!-- Stroke Style (Pattern) -->
+                        <div id="annot-stroke-styles-container" class="border-t border-[var(--border)] pt-2 mb-2">
+                            <label
+                                class="text-[10px] font-semibold text-[var(--text-sub)] mb-1.5 block uppercase tracking-wider">Pattern</label>
+                            <div class="flex items-center justify-between gap-1" id="annot-stroke-styles">
+                                <button onclick="setAnnotStrokeStyle('none')"
+                                    class="annot-style-btn w-full h-6 flex items-center justify-center hover:bg-[var(--hover-bg)] rounded"
+                                    title="None">
+                                    <svg width="16" height="16" viewBox="0 0 16 16">
+                                        <line x1="2" y1="14" x2="14" y2="2" stroke="#EF4444" stroke-width="1.5" />
+                                    </svg>
+                                </button>
+                                <button onclick="setAnnotStrokeStyle('solid')"
+                                    class="annot-style-btn w-full h-6 flex items-center justify-center hover:bg-[var(--hover-bg)] rounded bg-[var(--border)]"
+                                    title="Solid">
+                                    <svg width="16" height="4" viewBox="0 0 16 4">
+                                        <line x1="0" y1="2" x2="16" y2="2" stroke="currentColor" stroke-width="2" />
+                                    </svg>
+                                </button>
+                                <button onclick="setAnnotStrokeStyle('dashed')"
+                                    class="annot-style-btn w-full h-6 flex items-center justify-center hover:bg-[var(--hover-bg)] rounded"
+                                    title="Dashed">
+                                    <svg width="16" height="4" viewBox="0 0 16 4">
+                                        <line x1="0" y1="2" x2="16" y2="2" stroke="currentColor" stroke-width="2"
+                                            stroke-dasharray="4 2" />
+                                    </svg>
+                                </button>
+                                <button onclick="setAnnotStrokeStyle('dotted')"
+                                    class="annot-style-btn w-full h-6 flex items-center justify-center hover:bg-[var(--hover-bg)] rounded"
+                                    title="Dotted">
+                                    <svg width="16" height="4" viewBox="0 0 16 4">
+                                        <line x1="0" y1="2" x2="16" y2="2" stroke="currentColor" stroke-width="2"
+                                            stroke-dasharray="2 2" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Stroke Weight -->
+                        <div id="annot-strokes" class="border-t border-[var(--border)] pt-2">
+                            <label
+                                class="text-[10px] font-semibold text-[var(--text-sub)] mb-1.5 block uppercase tracking-wider">Thickness</label>
+                            <div class="flex items-center justify-between gap-1">
+                                <button onclick="setAnnotStroke(2)"
+                                    class="annot-stroke-btn w-full h-6 flex items-center justify-center hover:bg-[var(--hover-bg)] rounded bg-[var(--border)]"
+                                    title="Thin Stroke">
+                                    <div class="w-1 h-1 bg-current rounded-full pointer-events-none"></div>
+                                </button>
+                                <button onclick="setAnnotStroke(5)"
+                                    class="annot-stroke-btn w-full h-6 flex items-center justify-center hover:bg-[var(--hover-bg)] rounded"
+                                    title="Medium Stroke">
+                                    <div class="w-2 h-2 bg-current rounded-full pointer-events-none"></div>
+                                </button>
+                                <button onclick="setAnnotStroke(8)"
+                                    class="annot-stroke-btn w-full h-6 flex items-center justify-center hover:bg-[var(--hover-bg)] rounded"
+                                    title="Thick Stroke">
+                                    <div class="w-3 h-3 bg-current rounded-full pointer-events-none"></div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Stroke Opacity -->
+                        <div id="annot-stroke-opacity-container" class="border-t border-[var(--border)] pt-2 mt-2">
+                            <label
+                                class="text-[10px] font-semibold text-[var(--text-sub)] mb-1.5 block uppercase tracking-wider">Opacity</label>
+                            <input type="range" min="10" max="100" value="100" id="annot-stroke-opacity-slider"
+                                oninput="setAnnotStrokeOpacity(this.value)"
+                                class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-px h-6 bg-[var(--border)] mx-1"></div>
+
+                <!-- Fill Color -->
+                <div class="relative flex items-center justify-center w-7 h-7" id="annot-fill-colors">
+                    <button id="annot-current-fill-btn" onclick="toggleFillColorFlyout(event)"
+                        class="w-full h-full rounded-full border-2 border-[var(--bg-secondary)] shadow-md ring-1 ring-[var(--border)] relative overflow-hidden flex items-center justify-center"
+                        style="background-color: white;" title="Fill Color">
+                        <div class="absolute w-[150%] h-[2px] bg-red-500 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-45 pointer-events-none"
+                            id="annot-fill-none-line"></div>
+                    </button>
+                    <!-- Fill Flyout -->
+                    <div id="annot-fill-color-flyout"
+                        class="fixed -translate-x-1/2 bg-[var(--bg-secondary)] border border-[var(--border)] shadow-xl rounded-lg p-2 hidden w-36 z-[400]">
+                        <div class="grid grid-cols-3 gap-2 mb-2">
+                            <button onclick="setAnnotFillColor('transparent')"
+                                class="w-6 h-6 rounded-full border border-[var(--border)] mx-auto hover:scale-110 transition-transform relative overflow-hidden bg-white"
+                                title="No Fill">
+                                <div
+                                    class="absolute w-[150%] h-[2px] bg-red-500 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-45">
+                                </div>
+                            </button>
+                            <button onclick="setAnnotFillColor('#000000')"
+                                class="w-6 h-6 rounded-full bg-black border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotFillColor('#EF4444')"
+                                class="w-6 h-6 rounded-full bg-red-500 border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotFillColor('#3B82F6')"
+                                class="w-6 h-6 rounded-full bg-blue-500 border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotFillColor('#10B981')"
+                                class="w-6 h-6 rounded-full bg-green-500 border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotFillColor('#FBBF24')"
+                                class="w-6 h-6 rounded-full bg-yellow-400 border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                            <button onclick="setAnnotFillColor('#FFFFFF')"
+                                class="w-6 h-6 rounded-full bg-white border border-[var(--border)] mx-auto hover:scale-110 transition-transform"></button>
+                        </div>
+                        <div
+                            class="border-t border-[var(--border)] pt-2 relative w-full h-8 rounded overflow-hidden group/custom">
+                            <input type="color" onchange="setAnnotFillColor(this.value)" id="annot-fill-picker"
+                                class="absolute -top-2 -left-2 w-[150%] h-[150%] cursor-pointer" value="#FFFFFF"
+                                title="Custom Fill">
+                            <div
+                                class="absolute inset-0 pointer-events-none flex items-center justify-center text-xs font-semibold text-gray-500 mix-blend-difference group-hover/custom:scale-105 transition-transform">
+                                Custom</div>
+                        </div>
+
+                        <!-- Fill Opacity -->
+                        <div id="annot-fill-opacity-container" class="border-t border-[var(--border)] pt-2 mt-2">
+                            <label
+                                class="text-[10px] font-semibold text-[var(--text-sub)] mb-1.5 block uppercase tracking-wider">Opacity</label>
+                            <input type="range" min="0" max="100" value="100" id="annot-fill-opacity-slider"
+                                oninput="setAnnotFillOpacity(this.value)"
+                                class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-px h-6 bg-[var(--border)] mx-1" id="annot-font-size-divider"></div>
+
+                <!-- Font Size (shown only for Text tool) -->
+                <div class="hidden items-center gap-1" id="annot-font-size-group" title="Font Size">
+                    <i class="fas fa-font text-[9px] text-gray-400"></i>
+                    <input type="range" min="8" max="96" value="16" id="annot-font-size-slider"
+                        oninput="setAnnotFontSize(this.value)"
+                        class="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]">
+                    <span id="annot-font-size-label" class="text-[10px] font-mono text-gray-500 w-8">16px</span>
+                </div>
+            </div>
+
+            <div class="w-px h-6 bg-[var(--border)] mx-1 shrink-0"></div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-1 shrink-0">
+                <button id="btn-annot-undo" onclick="annotUndo()"
+                    class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--hover-bg)] transition-colors text-[var(--text-sub)] disabled:opacity-30"
+                    title="Undo (Ctrl+Z)" disabled><i class="fas fa-undo text-xs pointer-events-none"></i></button>
+                <button id="btn-annot-redo" onclick="annotRedo()"
+                    class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--hover-bg)] transition-colors text-[var(--text-sub)] disabled:opacity-30"
+                    title="Redo (Ctrl+Y)" disabled><i class="fas fa-redo text-xs pointer-events-none"></i></button>
+                <button onclick="annotClearAll()"
+                    class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-50 text-red-500 transition-colors"
+                    title="Clear All Annotations"><i class="fas fa-trash-alt text-xs pointer-events-none"></i></button>
+
+                <button onclick="annotExport()"
+                    class="ml-1 w-9 h-9 rounded-full bg-[var(--accent)] hover:brightness-110 text-white shadow-sm transition-colors flex items-center justify-center"
+                    title="Save Annotations to Page">
+                    <i class="fas fa-save pointer-events-none text-sm"></i>
+                </button>
             </div>
         </div>
     </div>
 
     <!-- START OF LOGIC -->
     <script src="logic.js"></script>
+    <script src="annotation.js"></script>
 </body>
 
 </html>

@@ -98,7 +98,7 @@ ipcMain.handle('save-file-dialog', async (event, options = {}) => {
 });
 
 ipcMain.handle('merge-files', async (event, data) => {
-    const { items, outputPath, resizeToFit, metadata, exportOptions } = data;
+    const { items, outputPath, resizeToFit, metadata, exportOptions, annotationOverlay } = data;
     const tempDir = path.join(app.getPath('temp'), 'combine-plus-temp');
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
@@ -177,22 +177,27 @@ ipcMain.handle('merge-files', async (event, data) => {
 
                     doc.end();
                     await new Promise((res, rej) => { stream.on('finish', res); stream.on('error', rej); });
-                    processedItems.push({ path: tempPdfPath, originalIndex: 0, rot: item.rot || 0, isTemp: true, parentName: item.parentName });
+                    processedItems.push({ path: tempPdfPath, originalIndex: 0, rot: item.rot || 0, id: item.id, isTemp: true, parentName: item.parentName });
                 } catch (e) {
                     failedFiles.push(path.basename(item.path));
                 }
             } else {
-                processedItems.push({ path: item.path, originalIndex: item.originalIndex, rot: item.rot || 0, parentName: item.parentName });
+                processedItems.push({ path: item.path, originalIndex: item.originalIndex, rot: item.rot || 0, id: item.id, parentName: item.parentName });
             }
         }
 
-        const payload = JSON.stringify({ items: processedItems, outputPath, resizeToFit: !!resizeToFit, metadata, exportOptions });
+        const payload = JSON.stringify({ items: processedItems, outputPath, resizeToFit: !!resizeToFit, metadata, exportOptions, annotationOverlay });
+
+        // Write payload to a temporary file to avoid ENAMETOOLONG OS limits
+        const payloadFilePath = path.join(tempDir, `payload_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.json`);
+        fs.writeFileSync(payloadFilePath, payload, 'utf8');
 
         return new Promise((resolve) => {
-            const runArgs = isPackaged ? [payload] : [enginePath, payload];
+            const runArgs = isPackaged ? [payloadFilePath] : [enginePath, payloadFilePath];
             const runCmd = isPackaged ? enginePath : 'python';
 
             execFile(runCmd, runArgs, { maxBuffer: 1024 * 1024 * 50 }, (error, stdout, stderr) => {
+                try { fs.unlinkSync(payloadFilePath); } catch (e) { }
                 processedItems.filter(i => i.isTemp).forEach(i => { try { fs.unlinkSync(i.path); } catch (e) { } });
                 if (error) return resolve({ success: false, error: stderr || error.message });
                 try {

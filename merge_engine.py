@@ -20,6 +20,7 @@ def merge_pdfs_hybrid(input_data):
     resize_to_fit = input_data.get('resizeToFit', False)
     meta_data = input_data.get('metadata', {})
     export_options = input_data.get('exportOptions', {})
+    annotation_overlay = input_data.get('annotationOverlay', None)  # optional annotation PNG
     
     A4_WIDTH = 595.0
 
@@ -232,14 +233,317 @@ def merge_pdfs_hybrid(input_data):
         if not os.path.exists(output_path):
             os.makedirs(output_path)
             
+        if annotation_overlay and not has_fitz:
+            report["warnings"].append("PyMuPDF is not installed. Annotations were skipped.")
+            
         for name, group_items in groups.items():
             base_name = os.path.splitext(name)[0]
             out_file = os.path.join(output_path, f"{base_name}_exported.pdf")
             process_group(group_items, out_file)
+            
+            if annotation_overlay and has_fitz:
+                _apply_annotation_overlay(out_file, annotation_overlay, group_items, report)
     else:
         process_group(items, output_path)
+        if annotation_overlay and not has_fitz:
+            report["warnings"].append("PyMuPDF is not installed. Annotations were skipped.")
+        if annotation_overlay and has_fitz:
+            _apply_annotation_overlay(output_path, annotation_overlay, items, report)
     
     return report
+
+def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
+    """
+    Parses raw vector coordinates from the frontend and injects them natively 
+    into the PDF as pristine vector shapes and text (Zero Rasterization).
+    """
+    import math
+    import os
+    import tempfile
+    try:
+        import fitz
+    except ImportError:
+        return  # silently skip if deps missing
+
+    def hex_to_rgb(hex_str):
+        if hex_str == 'transparent' or not hex_str: return None
+        h = hex_str.lstrip('#')
+        if len(h) == 3: h = h[0]*2 + h[1]*2 + h[2]*2
+        if len(h) != 6: return (0,0,0)
+        return tuple(int(h[i:i+2], 16)/255.0 for i in (0, 2, 4))
+        
+    def get_dashes(style, thickness):
+        if style == 'dashed': return [thickness * 3, thickness * 3]
+        if style == 'dotted': return [thickness, thickness * 2]
+        return None
+
+    try:
+        doc = fitz.open(pdf_path)
+        changed = False
+        actual_i = 0
+
+        for item in items_list:
+            if actual_i >= len(doc): break
+            page_id = item.get('id')
+            page = doc[actual_i]
+            actual_i += 1
+            
+            if not page_id or page_id not in overlays: continue
+            
+            overlay = overlays[page_id]
+            nodes = overlay.get('nodes', [])
+            if not nodes: continue
+
+            orig_rot_w = overlay.get('pageWidth', 0)
+            orig_rot_h = overlay.get('pageHeight', 0)
+            curr_rot_w = page.rect.width
+            curr_rot_h = page.rect.height
+            
+            scale = 1.0
+            if orig_rot_w > 0:
+                scale = max(curr_rot_w, curr_rot_h) / max(orig_rot_w, orig_rot_h)
+
+            def get_pt(x, y):
+                return x * scale, y * scale
+
+            shape = page.new_shape()
+
+            for node in nodes:
+                ntype = node.get('type')
+                color = hex_to_rgb(node.get('color'))
+                fill_color = hex_to_rgb(node.get('fillColor'))
+                has_stroke = node.get('strokeStyle') != 'none'
+                thickness = node.get('thickness', 1) * scale
+                stroke_opacity = node.get('strokeOpacity', node.get('opacity', 100)) / 100.0
+                fill_opacity = node.get('fillOpacity', node.get('opacity', 100)) / 100.0
+                dashes = get_dashes(node.get('strokeStyle', 'solid'), thickness)
+
+                blend_mode = node.get('blendMode', 'source-over')
+                if blend_mode == 'destination-out':
+                    color = (1.0, 1.0, 1.0)
+                    fill_color = (1.0, 1.0, 1.0)
+                    has_stroke = True
+
+                if ntype in ('PATH', 'POLYLINE') and node.get('points'):
+                    pts = [get_pt(p['x'], p['y']) for p in node.get('points')]
+                    fitz_pts = [fitz.Point(x, y) for x, y in pts]
+                    if node.get('closed'):
+                        if len(fitz_pts) > 0:
+                            fitz_pts.append(fitz_pts[0])
+                        shape.draw_polyline(fitz_pts)
+                    else:
+                        shape.draw_polyline(fitz_pts)
+                    
+                    shape.finish(
+                        color=color if has_stroke else None,
+                        fill=fill_color,
+                        width=thickness,
+                        stroke_opacity=stroke_opacity,
+                        fill_opacity=fill_opacity,
+                        dashes=dashes
+                    )
+
+                elif ntype == 'SHAPE':
+                    stype = node.get('shapeType')
+                    x1, y1 = get_pt(node['x'], node['y'])
+                    x2, y2 = get_pt(node['endX'], node['endY'])
+                    
+                    if stype == 'LINE':
+                        if has_stroke:
+                            shape.draw_line(fitz.Point(x1, y1), fitz.Point(x2, y2))
+                    elif stype == 'RECTANGLE':
+                        ux1, uy1 = node['x'], node['y']
+                        ux2, uy2 = node['endX'], node['endY']
+                        pts = [
+                            get_pt(ux1, uy1),
+                            get_pt(ux2, uy1),
+                            get_pt(ux2, uy2),
+                            get_pt(ux1, uy2)
+                        ]
+                        fitz_pts = [fitz.Point(p[0], p[1]) for p in pts]
+                        if len(fitz_pts) > 0: fitz_pts.append(fitz_pts[0])
+                        shape.draw_polyline(fitz_pts)
+                    elif stype == 'ELLIPSE':
+                        ux1, uy1 = node['x'], node['y']
+                        ux2, uy2 = node['endX'], node['endY']
+                        pts = [
+                            get_pt(ux1, uy1),
+                            get_pt(ux2, uy1),
+                            get_pt(ux2, uy2),
+                            get_pt(ux1, uy2)
+                        ]
+                        quad = fitz.Quad(pts[0], pts[1], pts[3], pts[2])
+                        shape.draw_oval(quad)
+                    elif stype == 'ARROW':
+                        if has_stroke:
+                            shape.draw_line(fitz.Point(x1, y1), fitz.Point(x2, y2))
+                            shape.finish(
+                                color=color if has_stroke else None,
+                                width=thickness,
+                                stroke_opacity=stroke_opacity,
+                                dashes=dashes
+                            )
+                            dx = x2 - x1
+                            dy = y2 - y1
+                            angle = math.atan2(dy, dx)
+                            headlen = 12 * scale
+                            p3 = fitz.Point(x2 - headlen * math.cos(angle - math.pi / 6), y2 - headlen * math.sin(angle - math.pi / 6))
+                            p4 = fitz.Point(x2 - headlen * math.cos(angle + math.pi / 6), y2 - headlen * math.sin(angle + math.pi / 6))
+                            shape.draw_polyline([p3, fitz.Point(x2, y2), p4])
+                            shape.finish(
+                                color=color if has_stroke else None,
+                                width=thickness,
+                                stroke_opacity=stroke_opacity,
+                                dashes=None
+                            )
+                    
+                    if stype in ('LINE', 'RECTANGLE', 'ELLIPSE'):
+                        shape.finish(
+                            color=color if has_stroke else None,
+                            fill=fill_color,
+                            width=thickness,
+                            stroke_opacity=stroke_opacity,
+                            fill_opacity=fill_opacity,
+                            dashes=dashes
+                        )
+
+                elif ntype == 'TEXT':
+                    txt = node.get('text', '')
+                    font_size = node.get('fontSize', 16) * scale
+                    node_rot = node.get('rotation', 0)
+                    
+                    lines = txt.split('\n')
+                    font = fitz.Font("helv")
+                    
+                    max_width = 0
+                    for line in lines:
+                        l = font.text_length(line, fontsize=font_size)
+                        if l > max_width: max_width = l
+                    
+                    text_h = font_size * len(lines)
+                    ux, uy = node['x'], node['y']
+                    
+                    if node.get('leaderHead') and node.get('leaderElbow'):
+                        uhx, uhy = node['leaderHead']['x'], node['leaderHead']['y']
+                        uex, uey = node['leaderElbow']['x'], node['leaderElbow']['y']
+                        
+                        minX, maxX = ux - node.get('padding', 5), ux + (max_width/scale) + node.get('padding', 5)
+                        minY, maxY = uy - node.get('padding', 5), uy + (text_h/scale) + node.get('padding', 5)
+                        cx, cy = (minX + maxX)/2, (minY + maxY)/2
+                        
+                        dx = cx - uex
+                        dy = cy - uey
+                        ix, iy = cx, cy
+                        if dx != 0 or dy != 0:
+                            tX = (minX - uex) / dx if dx > 0 else (maxX - uex) / dx if dx < 0 else -float('inf')
+                            tY = (minY - uey) / dy if dy > 0 else (maxY - uey) / dy if dy < 0 else -float('inf')
+                            t = max(0, min(1, max(tX, tY)))
+                            ix = uex + t * dx
+                            iy = uey + t * dy
+                        
+                        p1 = get_pt(ix, iy)
+                        p2 = get_pt(uex, uey)
+                        p3 = get_pt(uhx, uhy)
+                        
+                        shape.draw_polyline([fitz.Point(*p1), fitz.Point(*p2), fitz.Point(*p3)])
+                        shape.finish(
+                            color=color if has_stroke else None,
+                            width=thickness,
+                            stroke_opacity=stroke_opacity,
+                            dashes=dashes
+                        )
+                        
+                        angle = math.atan2(p3[1] - p2[1], p3[0] - p2[0])
+                        headlen = 12 * scale
+                        p4 = fitz.Point(p3[0] - headlen * math.cos(angle - math.pi / 6), p3[1] - headlen * math.sin(angle - math.pi / 6))
+                        p5 = fitz.Point(p3[0] - headlen * math.cos(angle + math.pi / 6), p3[1] - headlen * math.sin(angle + math.pi / 6))
+                        shape.draw_polyline([p4, fitz.Point(*p3), p5])
+                        
+                        shape.finish(
+                            color=color if has_stroke else None,
+                            width=thickness,
+                            stroke_opacity=stroke_opacity,
+                            dashes=None
+                        )
+                    
+                    node_rot = node.get('rotation', 0)
+                    def rotate_pt(px, py, ox, oy):
+                        if node_rot == 0: return px, py
+                        dx = px - ox
+                        dy = py - oy
+                        rad = node_rot * math.pi / 180.0
+                        rx = dx * math.cos(rad) - dy * math.sin(rad)
+                        ry = dx * math.sin(rad) + dy * math.cos(rad)
+                        return ox + rx, oy + ry
+
+                    minX = ux - node.get('padding', 5)
+                    maxX = ux + (max_width/scale) + node.get('padding', 5)
+                    minY = uy - node.get('padding', 5)
+                    maxY = uy + (text_h/scale) + node.get('padding', 5)
+                    pts = [
+                        get_pt(*rotate_pt(minX, minY, ux, uy)),
+                        get_pt(*rotate_pt(maxX, minY, ux, uy)),
+                        get_pt(*rotate_pt(maxX, maxY, ux, uy)),
+                        get_pt(*rotate_pt(minX, maxY, ux, uy))
+                    ]
+                    
+                    fitz_pts = [fitz.Point(p[0], p[1]) for p in pts]
+                    if len(fitz_pts) > 0: fitz_pts.append(fitz_pts[0])
+                    shape.draw_polyline(fitz_pts)
+                    shape.finish(
+                        color=color if has_stroke and thickness > 0 else None,
+                        fill=fill_color,
+                        width=thickness,
+                        stroke_opacity=stroke_opacity,
+                        fill_opacity=fill_opacity,
+                        dashes=dashes
+                    )
+                    
+                    tcolor = hex_to_rgb(node.get('textColor', node.get('color', '#000000')))
+                    if tcolor is None: tcolor = (0,0,0)
+                    
+                    for idx, line in enumerate(lines):
+                        l_ox = ux
+                        l_oy = uy + idx * (font_size/scale)
+                        y_adjusted = l_oy + (font_size/scale) * 0.8
+                        rx, ry = get_pt(l_ox, y_adjusted)
+                        
+                        kwargs = {
+                            "fontsize": font_size,
+                            "fontname": "helv",
+                            "color": tcolor,
+                            "fill_opacity": stroke_opacity
+                        }
+                        if node_rot != 0:
+                            kwargs["morph"] = (fitz.Point(rx, ry), fitz.Matrix(node_rot))
+                            
+                        page.insert_text(fitz.Point(rx, ry), line, **kwargs)
+
+            shape.commit()
+            changed = True
+
+        if changed:
+            fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+            os.close(fd)
+            doc.save(temp_path, garbage=4, deflate=True)
+            doc.close()
+            import shutil, time
+            success = False
+            for _ in range(10):
+                try:
+                    shutil.move(temp_path, pdf_path)
+                    success = True
+                    break
+                except Exception:
+                    time.sleep(0.5)
+            if not success:
+                report["errors"].append("Failed to overwrite PDF with annotations due to file lock.")
+        else:
+            doc.close()
+    except Exception as e:
+        import traceback
+        report["errors"].append(f"Annotation overlay failed: {str(e)}")
+        print(f"Vector annotation overlay failed: {e}\n{traceback.format_exc()}", file=sys.stderr)
 
 if __name__ == "__main__":
     try:
@@ -248,8 +552,14 @@ if __name__ == "__main__":
             sys.exit(1)
 
         input_str = sys.argv[1]
-        data = json.loads(input_str)
         
+        # Handle file paths directly to bypass OS command line length limits
+        if os.path.isfile(input_str):
+            with open(input_str, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            data = json.loads(input_str)
+            
         rep = merge_pdfs_hybrid(data)
         
         print(json.dumps({"success": True, "report": rep}))
