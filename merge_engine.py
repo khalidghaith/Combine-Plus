@@ -3,17 +3,23 @@ import json
 import os
 import tempfile
 import io
+import uuid
+import math
+import shutil
+import time
+import traceback
+
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import NameObject, StreamObject, DictionaryObject, ArrayObject, TextStringObject, ByteStringObject, NumberObject
+
+try:
+    import fitz
+    from PIL import Image
+    has_fitz = True
+except ImportError:
+    has_fitz = False
 
 def merge_pdfs_hybrid(input_data):
-    from pypdf import PdfReader, PdfWriter
-    from pypdf.generic import NameObject, StreamObject, DictionaryObject, ArrayObject, TextStringObject, ByteStringObject, NumberObject
-    import os, io, sys, tempfile, json, uuid
-    try:
-        import fitz
-        from PIL import Image
-        has_fitz = True
-    except ImportError:
-        has_fitz = False
 
     items = input_data.get('items', [])
     raw_output = input_data.get('outputPath')
@@ -257,13 +263,6 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
     Parses raw vector coordinates from the frontend and injects them natively 
     into the PDF as pristine vector shapes and text (Zero Rasterization).
     """
-    import math
-    import os
-    import tempfile
-    try:
-        import fitz
-    except ImportError:
-        return  # silently skip if deps missing
 
     def hex_to_rgb(hex_str):
         if hex_str == 'transparent' or not hex_str: return None
@@ -273,8 +272,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
         return tuple(int(h[i:i+2], 16)/255.0 for i in (0, 2, 4))
         
     def get_dashes(style, thickness):
-        if style == 'dashed': return [thickness * 3, thickness * 3]
-        if style == 'dotted': return [thickness, thickness * 2]
+        if style == 'dashed': return f"[{thickness * 3:g} {thickness * 3:g}] 0"
+        if style == 'dotted': return f"[{thickness:g} {thickness * 2:g}] 0"
         return None
 
     try:
@@ -306,13 +305,15 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
             def get_pt(x, y):
                 return x * scale, y * scale
 
-            shape = page.new_shape()
-
             for node in nodes:
+                # CREATING A FRESH SHAPE FOR EVERY NODE
+                shape = page.new_shape()
+                
                 ntype = node.get('type')
                 color = hex_to_rgb(node.get('color'))
                 fill_color = hex_to_rgb(node.get('fillColor'))
-                has_stroke = node.get('strokeStyle') != 'none'
+                # Only draw a stroke if explicitly requested AND not completely transparent/zero-width
+                has_stroke = node.get('strokeStyle') != 'none' and node.get('thickness', 1) > 0 and color is not None
                 thickness = node.get('thickness', 1) * scale
                 stroke_opacity = node.get('strokeOpacity', node.get('opacity', 100)) / 100.0
                 fill_opacity = node.get('fillOpacity', node.get('opacity', 100)) / 100.0
@@ -330,18 +331,18 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                     if node.get('closed'):
                         if len(fitz_pts) > 0:
                             fitz_pts.append(fitz_pts[0])
-                        shape.draw_polyline(fitz_pts)
-                    else:
-                        shape.draw_polyline(fitz_pts)
                     
+                    shape.draw_polyline(fitz_pts)
                     shape.finish(
                         color=color if has_stroke else None,
                         fill=fill_color,
                         width=thickness,
                         stroke_opacity=stroke_opacity,
                         fill_opacity=fill_opacity,
-                        dashes=dashes
+                        dashes=dashes,
+                        lineCap=1, lineJoin=1
                     )
+                    shape.commit()
 
                 elif ntype == 'SHAPE':
                     stype = node.get('shapeType')
@@ -381,21 +382,29 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                                 color=color if has_stroke else None,
                                 width=thickness,
                                 stroke_opacity=stroke_opacity,
-                                dashes=dashes
+                                dashes=dashes,
+                                lineCap=1, lineJoin=1
                             )
+                            shape.commit()
+                            
+                            # Fresh shape for arrowhead to avoid connection to shaft
+                            shape = page.new_shape()
                             dx = x2 - x1
                             dy = y2 - y1
                             angle = math.atan2(dy, dx)
                             headlen = 12 * scale
                             p3 = fitz.Point(x2 - headlen * math.cos(angle - math.pi / 6), y2 - headlen * math.sin(angle - math.pi / 6))
                             p4 = fitz.Point(x2 - headlen * math.cos(angle + math.pi / 6), y2 - headlen * math.sin(angle + math.pi / 6))
-                            shape.draw_polyline([p3, fitz.Point(x2, y2), p4])
+                            shape.draw_line(fitz.Point(x2, y2), p3)
+                            shape.draw_line(fitz.Point(x2, y2), p4)
                             shape.finish(
                                 color=color if has_stroke else None,
                                 width=thickness,
                                 stroke_opacity=stroke_opacity,
-                                dashes=None
+                                dashes=None,
+                                lineCap=1, lineJoin=1
                             )
+                            # Fall through to finish/commit if needed, but normally handled above
                     
                     if stype in ('LINE', 'RECTANGLE', 'ELLIPSE'):
                         shape.finish(
@@ -404,8 +413,10 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                             width=thickness,
                             stroke_opacity=stroke_opacity,
                             fill_opacity=fill_opacity,
-                            dashes=dashes
+                            dashes=dashes,
+                            lineCap=1, lineJoin=1
                         )
+                    shape.commit()
 
                 elif ntype == 'TEXT':
                     txt = node.get('text', '')
@@ -424,49 +435,84 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                     ux, uy = node['x'], node['y']
                     
                     if node.get('leaderHead') and node.get('leaderElbow'):
-                        uhx, uhy = node['leaderHead']['x'], node['leaderHead']['y']
-                        uex, uey = node['leaderElbow']['x'], node['leaderElbow']['y']
+                        hx = node['leaderHead']['x'] - ux
+                        hy = node['leaderHead']['y'] - uy
+                        ex = node['leaderElbow']['x'] - ux
+                        ey = node['leaderElbow']['y'] - uy
+
+                        if node_rot != 0:
+                            rad = -node_rot * math.pi / 180.0
+                            hx, hy = hx * math.cos(rad) - hy * math.sin(rad), hx * math.sin(rad) + hy * math.cos(rad)
+                            ex, ey = ex * math.cos(rad) - ey * math.sin(rad), ex * math.sin(rad) + ey * math.cos(rad)
+
+                        # Align mathematically with browser canvas boundary logic
+                        minX_local = -node.get('padding', 5) - 1
+                        maxX_local = (max_width/scale) + node.get('padding', 5) + 1
+                        minY_local = -node.get('padding', 5) - 1
+                        maxY_local = (text_h/scale) + node.get('padding', 5) + 1
                         
-                        minX, maxX = ux - node.get('padding', 5), ux + (max_width/scale) + node.get('padding', 5)
-                        minY, maxY = uy - node.get('padding', 5), uy + (text_h/scale) + node.get('padding', 5)
-                        cx, cy = (minX + maxX)/2, (minY + maxY)/2
+                        cx_local = (minX_local + maxX_local) / 2.0
+                        cy_local = (minY_local + maxY_local) / 2.0
                         
-                        dx = cx - uex
-                        dy = cy - uey
-                        ix, iy = cx, cy
-                        if dx != 0 or dy != 0:
-                            tX = (minX - uex) / dx if dx > 0 else (maxX - uex) / dx if dx < 0 else -float('inf')
-                            tY = (minY - uey) / dy if dy > 0 else (maxY - uey) / dy if dy < 0 else -float('inf')
+                        ix_local = cx_local
+                        iy_local = cy_local
+                        
+                        dx_local = cx_local - ex
+                        dy_local = cy_local - ey
+                        
+                        if dx_local != 0 or dy_local != 0:
+                            tX = -float('inf')
+                            tY = -float('inf')
+                            if dx_local > 0: tX = (minX_local - ex) / float(dx_local)
+                            elif dx_local < 0: tX = (maxX_local - ex) / float(dx_local)
+                            if dy_local > 0: tY = (minY_local - ey) / float(dy_local)
+                            elif dy_local < 0: tY = (maxY_local - ey) / float(dy_local)
                             t = max(0, min(1, max(tX, tY)))
-                            ix = uex + t * dx
-                            iy = uey + t * dy
+                            ix_local = ex + t * dx_local
+                            iy_local = ey + t * dy_local
                         
-                        p1 = get_pt(ix, iy)
-                        p2 = get_pt(uex, uey)
-                        p3 = get_pt(uhx, uhy)
+                        if node_rot != 0:
+                            rad_back = node_rot * math.pi / 180.0
+                            ix_global = ux + (ix_local * math.cos(rad_back) - iy_local * math.sin(rad_back))
+                            iy_global = uy + (ix_local * math.sin(rad_back) + iy_local * math.cos(rad_back))
+                        else:
+                            ix_global = ux + ix_local
+                            iy_global = uy + iy_local
+                            
+                        p1 = get_pt(ix_global, iy_global)
+                        p2 = get_pt(node['leaderElbow']['x'], node['leaderElbow']['y'])
+                        p3 = get_pt(node['leaderHead']['x'], node['leaderHead']['y'])
                         
-                        shape.draw_polyline([fitz.Point(*p1), fitz.Point(*p2), fitz.Point(*p3)])
-                        shape.finish(
-                            color=color if has_stroke else None,
-                            width=thickness,
-                            stroke_opacity=stroke_opacity,
-                            dashes=dashes
-                        )
-                        
-                        angle = math.atan2(p3[1] - p2[1], p3[0] - p2[0])
-                        headlen = 12 * scale
-                        p4 = fitz.Point(p3[0] - headlen * math.cos(angle - math.pi / 6), p3[1] - headlen * math.sin(angle - math.pi / 6))
-                        p5 = fitz.Point(p3[0] - headlen * math.cos(angle + math.pi / 6), p3[1] - headlen * math.sin(angle + math.pi / 6))
-                        shape.draw_polyline([p4, fitz.Point(*p3), p5])
-                        
-                        shape.finish(
-                            color=color if has_stroke else None,
-                            width=thickness,
-                            stroke_opacity=stroke_opacity,
-                            dashes=None
-                        )
+                        if has_stroke:
+                            shape.draw_polyline([fitz.Point(*p1), fitz.Point(*p2), fitz.Point(*p3)])
+                            shape.finish(
+                                color=color if has_stroke else None,
+                                width=thickness,
+                                stroke_opacity=stroke_opacity,
+                                dashes=dashes,
+                                lineCap=1, lineJoin=1
+                            )
+                            shape.commit()
+                            
+                            # Fresh shape for leader arrowhead
+                            shape = page.new_shape()
+                            angle = math.atan2(p3[1] - p2[1], p3[0] - p2[0])
+                            headlen = 12 * scale
+                            p4 = fitz.Point(p3[0] - headlen * math.cos(angle - math.pi / 6), p3[1] - headlen * math.sin(angle - math.pi / 6))
+                            p5 = fitz.Point(p3[0] - headlen * math.cos(angle + math.pi / 6), p3[1] - headlen * math.sin(angle + math.pi / 6))
+                            shape.draw_line(fitz.Point(*p3), p4)
+                            shape.draw_line(fitz.Point(*p3), p5)
+                            
+                            shape.finish(
+                                color=color if has_stroke else None,
+                                width=thickness,
+                                stroke_opacity=stroke_opacity,
+                                dashes=None,
+                                lineCap=1, lineJoin=1
+                            )
+                            shape.commit()
+                            shape = page.new_shape()
                     
-                    node_rot = node.get('rotation', 0)
                     def rotate_pt(px, py, ox, oy):
                         if node_rot == 0: return px, py
                         dx = px - ox
@@ -496,8 +542,10 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                         width=thickness,
                         stroke_opacity=stroke_opacity,
                         fill_opacity=fill_opacity,
-                        dashes=dashes
+                        dashes=dashes,
+                        lineCap=1, lineJoin=1
                     )
+                    shape.commit()
                     
                     tcolor = hex_to_rgb(node.get('textColor', node.get('color', '#000000')))
                     if tcolor is None: tcolor = (0,0,0)
@@ -506,7 +554,10 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                         l_ox = ux
                         l_oy = uy + idx * (font_size/scale)
                         y_adjusted = l_oy + (font_size/scale) * 0.8
-                        rx, ry = get_pt(l_ox, y_adjusted)
+                        
+                        # Accurately apply group block rotation so text matches its mathematical bounding box
+                        rx_unscaled, ry_unscaled = rotate_pt(l_ox, y_adjusted, ux, uy)
+                        rx, ry = get_pt(rx_unscaled, ry_unscaled)
                         
                         kwargs = {
                             "fontsize": font_size,
@@ -518,8 +569,6 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                             kwargs["morph"] = (fitz.Point(rx, ry), fitz.Matrix(node_rot))
                             
                         page.insert_text(fitz.Point(rx, ry), line, **kwargs)
-
-            shape.commit()
             changed = True
 
         if changed:
@@ -527,7 +576,6 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
             os.close(fd)
             doc.save(temp_path, garbage=4, deflate=True)
             doc.close()
-            import shutil, time
             success = False
             for _ in range(10):
                 try:
@@ -541,7 +589,6 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
         else:
             doc.close()
     except Exception as e:
-        import traceback
         report["errors"].append(f"Annotation overlay failed: {str(e)}")
         print(f"Vector annotation overlay failed: {e}\n{traceback.format_exc()}", file=sys.stderr)
 
@@ -565,5 +612,6 @@ if __name__ == "__main__":
         print(json.dumps({"success": True, "report": rep}))
         
     except Exception as e:
+        print(f"Engine failed: {e}\n{traceback.format_exc()}", file=sys.stderr)
         print(json.dumps({"success": False, "error": str(e)}))
         sys.exit(1)

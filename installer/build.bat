@@ -10,11 +10,11 @@ echo ========================================
 
 :: 1. Compile Python Engine to Standalone EXE
 echo [1/3] Compiling Python Engine...
-:: Ensure pypdf is installed for the build process
-pip install pyinstaller pypdf --disable-pip-version-check
+:: Ensure pypdf, PyMuPDF, and Pillow are installed for the build process
+pip install pyinstaller pypdf PyMuPDF Pillow --disable-pip-version-check
 if %errorlevel% neq 0 goto :error
 
-pyinstaller --onefile --noconsole --icon=icon.ico --name merge_engine --workpath py-build --distpath py-dist merge_engine.py
+pyinstaller --onefile --noconsole --icon=icon.ico --hidden-import=fitz --hidden-import=PIL --hidden-import=pypdf --name merge_engine --workpath py-build --distpath py-dist merge_engine.py
 if %errorlevel% neq 0 goto :error
 
 :: 2. Setup Binary Folder for Electron Builder

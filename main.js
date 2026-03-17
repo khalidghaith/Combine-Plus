@@ -199,12 +199,17 @@ ipcMain.handle('merge-files', async (event, data) => {
             execFile(runCmd, runArgs, { maxBuffer: 1024 * 1024 * 50 }, (error, stdout, stderr) => {
                 try { fs.unlinkSync(payloadFilePath); } catch (e) { }
                 processedItems.filter(i => i.isTemp).forEach(i => { try { fs.unlinkSync(i.path); } catch (e) { } });
-                if (error) return resolve({ success: false, error: stderr || error.message });
-                try {
-                    resolve({ ...JSON.parse(stdout.trim()), failedFiles });
-                } catch (e) {
-                    resolve({ success: false, error: "Engine output error: " + stdout.substring(0, 100) });
+
+                if (stdout) {
+                    try {
+                        return resolve({ ...JSON.parse(stdout.trim()), failedFiles });
+                    } catch (e) {
+                        if (!error) return resolve({ success: false, error: "Engine output error: " + stdout.substring(0, 100) });
+                    }
                 }
+
+                if (error) return resolve({ success: false, error: stderr || error.message });
+                resolve({ success: false, error: "Engine produced no output" });
             });
         });
 
