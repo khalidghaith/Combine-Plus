@@ -328,7 +328,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                 if ntype in ('PATH', 'POLYLINE') and node.get('points'):
                     pts = [get_pt(p['x'], p['y']) for p in node.get('points')]
                     fitz_pts = [fitz.Point(x, y) for x, y in pts]
-                    if node.get('closed'):
+                    is_closed = node.get('closed', False)
+                    if is_closed:
                         if len(fitz_pts) > 0:
                             fitz_pts.append(fitz_pts[0])
                     
@@ -340,7 +341,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                         stroke_opacity=stroke_opacity,
                         fill_opacity=fill_opacity,
                         dashes=dashes,
-                        lineCap=1, lineJoin=1
+                        lineCap=1, lineJoin=1,
+                        closePath=is_closed
                     )
                     shape.commit()
 
@@ -383,7 +385,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                                 width=thickness,
                                 stroke_opacity=stroke_opacity,
                                 dashes=dashes,
-                                lineCap=1, lineJoin=1
+                                lineCap=1, lineJoin=1,
+                                closePath=False
                             )
                             shape.commit()
                             
@@ -402,7 +405,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                                 width=thickness,
                                 stroke_opacity=stroke_opacity,
                                 dashes=None,
-                                lineCap=1, lineJoin=1
+                                lineCap=1, lineJoin=1,
+                                closePath=False
                             )
                             # Fall through to finish/commit if needed, but normally handled above
                     
@@ -414,7 +418,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                             stroke_opacity=stroke_opacity,
                             fill_opacity=fill_opacity,
                             dashes=dashes,
-                            lineCap=1, lineJoin=1
+                            lineCap=1, lineJoin=1,
+                            closePath=(stype in ('RECTANGLE', 'ELLIPSE'))
                         )
                     shape.commit()
 
@@ -490,7 +495,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                                 width=thickness,
                                 stroke_opacity=stroke_opacity,
                                 dashes=dashes,
-                                lineCap=1, lineJoin=1
+                                lineCap=1, lineJoin=1,
+                                closePath=False
                             )
                             shape.commit()
                             
@@ -508,7 +514,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                                 width=thickness,
                                 stroke_opacity=stroke_opacity,
                                 dashes=None,
-                                lineCap=1, lineJoin=1
+                                lineCap=1, lineJoin=1,
+                                closePath=False
                             )
                             shape.commit()
                             shape = page.new_shape()
@@ -543,7 +550,8 @@ def _apply_annotation_overlay(pdf_path, overlays, items_list, report):
                         stroke_opacity=stroke_opacity,
                         fill_opacity=fill_opacity,
                         dashes=dashes,
-                        lineCap=1, lineJoin=1
+                        lineCap=1, lineJoin=1,
+                        closePath=True
                     )
                     shape.commit()
                     
