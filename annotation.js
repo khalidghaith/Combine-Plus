@@ -1615,13 +1615,34 @@ function handlePointerDown(e) {
             renderAnnotations();
             drawCurrentAnnotationPreview();
         } else if (currentAnnotation.calloutStep === 1) {
-            currentAnnotation.leaderElbow = { x, y };
+            let px = x;
+            let py = y;
+            const snapTol = 15 / (pdfRenderState.scale || 1);
+            if (Math.abs(px - currentAnnotation.leaderHead.x) < snapTol)
+                px = currentAnnotation.leaderHead.x;
+            if (Math.abs(py - currentAnnotation.leaderHead.y) < snapTol)
+                py = currentAnnotation.leaderHead.y;
+
+            currentAnnotation.leaderElbow = { x: px, y: py };
             currentAnnotation.calloutStep = 2;
             renderAnnotations();
             drawCurrentAnnotationPreview();
         } else if (currentAnnotation.calloutStep === 2) {
-            currentAnnotation.x = x;
-            currentAnnotation.y = y;
+            let px = x;
+            let py = y;
+            const snapTol = 15 / (pdfRenderState.scale || 1);
+
+            // Snap box center-points to the elbow
+            const centerX = px + (currentAnnotation._width || 0) / 2;
+            const centerY = py + (currentAnnotation._height || currentAnnotation.fontSize || 16) / 2;
+
+            if (Math.abs(centerX - currentAnnotation.leaderElbow.x) < snapTol)
+                px = currentAnnotation.leaderElbow.x - (currentAnnotation._width || 0) / 2;
+            if (Math.abs(centerY - currentAnnotation.leaderElbow.y) < snapTol)
+                py = currentAnnotation.leaderElbow.y - (currentAnnotation._height || currentAnnotation.fontSize || 16) / 2;
+
+            currentAnnotation.x = px;
+            currentAnnotation.y = py;
             const node = currentAnnotation;
             delete node.calloutStep;
             currentAnnotation = null;
@@ -1670,11 +1691,29 @@ function handlePointerMove(e) {
                     annot.points[idx].y = y;
                 }
             } else if (resizeHandle === 'leaderHead') {
-                annot.leaderHead.x = x;
-                annot.leaderHead.y = y;
+                let px = x;
+                let py = y;
+                const snapTol = 15 / (pdfRenderState.scale || 1);
+                if (Math.abs(px - annot.leaderElbow.x) < snapTol) px = annot.leaderElbow.x;
+                if (Math.abs(py - annot.leaderElbow.y) < snapTol) py = annot.leaderElbow.y;
+                annot.leaderHead.x = px;
+                annot.leaderHead.y = py;
             } else if (resizeHandle === 'leaderElbow') {
-                annot.leaderElbow.x = x;
-                annot.leaderElbow.y = y;
+                let px = x;
+                let py = y;
+                const snapTol = 15 / (pdfRenderState.scale || 1);
+                const cX = annot.x + (annot._width || 0) / 2;
+                const cY = annot.y + (annot._height || annot.fontSize || 16) / 2;
+
+                // Snap elbow to the horizontal/vertical mid-points of the box sides
+                if (Math.abs(px - annot.leaderHead.x) < snapTol) px = annot.leaderHead.x;
+                else if (Math.abs(px - cX) < snapTol) px = cX;
+
+                if (Math.abs(py - annot.leaderHead.y) < snapTol) py = annot.leaderHead.y;
+                else if (Math.abs(py - cY) < snapTol) py = cY;
+
+                annot.leaderElbow.x = px;
+                annot.leaderElbow.y = py;
             } else if (annot.type === 'SHAPE' && (annot.shapeType === 'RECTANGLE' || annot.shapeType === 'ELLIPSE')) {
                 // Determine absolute visual bounds from original interaction start
                 let minX = Math.min(originalResizeBounds.x, originalResizeBounds.endX);
@@ -1763,8 +1802,22 @@ function handlePointerMove(e) {
         const annot = AnnotationState.annotations.find(a => a.id === AnnotationState.selectedAnnotationId);
         if (annot) {
             if (annot.type === 'TEXT') {
-                const newX = x - dragOffset.x;
-                const newY = y - dragOffset.y;
+                let newX = x - dragOffset.x;
+                let newY = y - dragOffset.y;
+
+                if (annot.leaderHead && annot.leaderElbow) {
+                    const snapTol = 15 / (pdfRenderState.scale || 1);
+                    const cX = newX + (annot._width || 0) / 2;
+                    const cY = newY + (annot._height || annot.fontSize || 16) / 2;
+
+                    if (Math.abs(cX - annot.leaderElbow.x) < snapTol) {
+                        newX = annot.leaderElbow.x - (annot._width || 0) / 2;
+                    }
+                    if (Math.abs(cY - annot.leaderElbow.y) < snapTol) {
+                        newY = annot.leaderElbow.y - (annot._height || annot.fontSize || 16) / 2;
+                    }
+                }
+
                 const dx = newX - annot.x;
                 const dy = newY - annot.y;
                 annot.x = newX;
@@ -1816,13 +1869,27 @@ function handlePointerMove(e) {
 
     // ── Callout / Leader line preview ────────────────────────────────
     if (isDrawing && currentAnnotation && currentAnnotation.type === 'TEXT' && currentAnnotation.leaderHead) {
+        let px = x;
+        let py = y;
+        const snapTol = 15 / (pdfRenderState.scale || 1);
+
         if (currentAnnotation.calloutStep === 1) {
-            currentAnnotation.leaderElbow = { x, y };
-            currentAnnotation.x = x;
-            currentAnnotation.y = y;
+            if (Math.abs(px - currentAnnotation.leaderHead.x) < snapTol) px = currentAnnotation.leaderHead.x;
+            if (Math.abs(py - currentAnnotation.leaderHead.y) < snapTol) py = currentAnnotation.leaderHead.y;
+            currentAnnotation.leaderElbow = { x: px, y: py };
+            currentAnnotation.x = px;
+            currentAnnotation.y = py;
         } else if (currentAnnotation.calloutStep === 2) {
-            currentAnnotation.x = x;
-            currentAnnotation.y = y;
+            const centerX = px + (currentAnnotation._width || 0) / 2;
+            const centerY = py + (currentAnnotation._height || currentAnnotation.fontSize || 16) / 2;
+
+            if (Math.abs(centerX - currentAnnotation.leaderElbow.x) < snapTol)
+                px = currentAnnotation.leaderElbow.x - (currentAnnotation._width || 0) / 2;
+            if (Math.abs(centerY - currentAnnotation.leaderElbow.y) < snapTol)
+                py = currentAnnotation.leaderElbow.y - (currentAnnotation._height || currentAnnotation.fontSize || 16) / 2;
+
+            currentAnnotation.x = px;
+            currentAnnotation.y = py;
         }
         renderAnnotations();
         drawCurrentAnnotationPreview();
