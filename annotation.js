@@ -2159,6 +2159,26 @@ function enterTextEditMode(annot) {
 
     annot._isEditing = true;
 
+    // Determine smart anchor based on elbow quadrant relative to box center
+    let horizontalAnchor = 'left';
+    if (annot.leaderElbow) {
+        // Use calculated dimensions or defaults
+        const w = annot._width || 80;
+        const h = annot._height || annot.fontSize || 16;
+
+        // Calculate relative vector from box center to elbow
+        const relX = annot.leaderElbow.x - (annot.x + w / 2);
+        const relY = annot.leaderElbow.y - (annot.y + h / 2);
+
+        // Normalize by dimensions to prioritize the true "side" connection
+        if (Math.abs(relY / h) > Math.abs(relX / w)) {
+            horizontalAnchor = 'center'; // Connected to Top or Bottom -> Grow from center
+        } else {
+            // Connected to a side -> Grow towards the opposite direction (Anchor to connection side)
+            horizontalAnchor = (relX < 0) ? 'left' : 'right';
+        }
+    }
+
     const existing = document.getElementById('annot-text-editor');
     if (existing) existing.remove();
 
@@ -2202,15 +2222,36 @@ function enterTextEditMode(annot) {
         min-width: 60px;
         min-height: 1.5em;
         line-height: 1;
+        text-align: ${horizontalAnchor};
     `;
 
     const updateSize = () => {
+        const oldW = annot._width || 0;
+
         textarea.style.width = '1px';
         textarea.style.height = '1px';
         textarea.style.width = (textarea.scrollWidth) + 'px';
         textarea.style.height = (textarea.scrollHeight) + 'px';
+
         annot.text = textarea.value;
         renderAnnotations();
+
+        if (annot.leaderElbow) {
+            const newW = annot._width || 0;
+            const deltaW = newW - oldW;
+
+            // Shift X coordinate based on the anchor to control growth direction
+            if (horizontalAnchor === 'right') annot.x -= deltaW;
+            else if (horizontalAnchor === 'center') annot.x -= deltaW / 2;
+
+            if (deltaW !== 0) {
+                renderAnnotations();
+                // Re-sync editor position to the new adjusted X
+                const ptShift = mapPointFromUnrotated(annot.x * s, annot.y * s, rot, annotCanvas.width, annotCanvas.height);
+                textarea.style.left = (canvasRect.left + ptShift.x * (canvasRect.width / annotCanvas.width)) + 'px';
+                textarea.style.top = (canvasRect.top + ptShift.y * (canvasRect.height / annotCanvas.height)) + 'px';
+            }
+        }
     };
 
     const commit = () => {
