@@ -969,6 +969,9 @@ document.addEventListener('DOMContentLoaded', () => {
         batchWarning.classList.toggle('hidden', multiItems);
         toggleExportModeSettings();
 
+        // Ensure optimization settings panel state is synchronized with the checkbox on modal open
+        window.toggleOptimizeSettings();
+
         exportModal.classList.remove('hidden');
     }
 
